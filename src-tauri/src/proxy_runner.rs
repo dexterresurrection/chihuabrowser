@@ -28,6 +28,8 @@ fn unsuffixed_binary_name(base_name: &str) -> String {
   {
     match base_name {
       "chihua-proxy" => "chihua-proxy.exe".to_string(),
+      "chihua-tunnel" => "chihua-tunnel.exe".to_string(),
+      "xray" => "xray.exe".to_string(),
       _ => String::new(),
     }
   }

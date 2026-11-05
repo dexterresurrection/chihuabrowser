@@ -1844,7 +1844,7 @@
     },
     "network": "ネットワーク",
     "integrations": "連携",
-    "account": "アカウント"
+    "account": "Cloud VPN"
   },
   "pageTitle": {
     "proxies": "ネットワーク",
@@ -2040,5 +2040,30 @@
     "title": "Camoufox のサポートが終了します",
     "description": "Camoufox プロファイルのサポートは 2026 年 7 月 8 日に終了します。Camoufox プロファイルが 1 つ以上あります。それまでに Chihua へ移行してください。その後、Camoufox プロファイルは動作しなくなる可能性があります。",
     "acknowledge": "了解しました"
+  },
+  "cloudVpn": {
+    "title": "Cloud VPN",
+    "subtitle": "Sign in and the servers of your subscription appear as proxies for profiles",
+    "email": "Email",
+    "password": "Password",
+    "code": "Code from the email",
+    "sendCode": "Get a code",
+    "signIn": "Sign in",
+    "usePassword": "Sign in with a password",
+    "useCode": "Sign in with a code",
+    "codeSent": "The code was sent to your email",
+    "consentRequired": "Accept the terms in your account on the website first, then sign in again",
+    "subscriptionActive": "Subscription is active",
+    "subscriptionNone": "No subscription",
+    "until": "until {{date}}",
+    "updateServers": "Update servers",
+    "serversUpdated": "Servers updated",
+    "signOut": "Sign out",
+    "hint": "Choose these servers as a proxy when creating a profile or in its settings."
+  },
+  "chihuaForm": {
+    "os": "System in the fingerprint",
+    "osHint": "Websites will see a device with this system.",
+    "randomize": "New fingerprint on every launch"
   }
 }

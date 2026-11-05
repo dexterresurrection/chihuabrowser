@@ -1,7 +1,6 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LuEye, LuEyeOff } from "react-icons/lu";
@@ -28,19 +27,10 @@ import { useCloudAuth } from "@/hooks/use-cloud-auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 import type { SyncSettings } from "@/types";
 
-const DEVICE_LINK_URL = "https://chihuabrowser.com/auth/link";
 
 interface SyncConfigDialogProps {
   isOpen: boolean;
   onClose: (loginOccurred?: boolean) => void;
-  /**
-   * Called after the user clicks "Login" so the parent can open the
-   * device-code verify dialog as a separate step. Implementations should
-   * close this dialog and open the verify one — that keeps the verify
-   * step visually independent and avoids stacking on top of other
-   * dialogs (e.g. the profile selector triggered by deep links).
-   */
-  onLoginStarted?: () => void;
 }
 
 interface ProxyUsage {
@@ -54,7 +44,6 @@ interface ProxyUsage {
 export function SyncConfigDialog({
   isOpen,
   onClose,
-  onLoginStarted,
 }: SyncConfigDialogProps) {
   const { t } = useTranslation();
 
@@ -74,7 +63,7 @@ export function SyncConfigDialog({
     logout,
   } = useCloudAuth();
 
-  const [activeTab, setActiveTab] = useState<string>("cloud");
+  const [activeTab, setActiveTab] = useState<string>("self-hosted");
   const [, setLiveProxyUsage] = useState<ProxyUsage | null>(null);
 
   const [connectionStatus, setConnectionStatus] = useState<
@@ -125,11 +114,11 @@ export function SyncConfigDialog({
   useEffect(() => {
     if (isCloudLoading) return;
     if (isLoggedIn) {
-      setActiveTab("cloud");
+      setActiveTab("self-hosted");
     } else if (serverUrl && token) {
       setActiveTab("self-hosted");
     } else {
-      setActiveTab("cloud");
+      setActiveTab("self-hosted");
     }
   }, [isCloudLoading, isLoggedIn, serverUrl, token]);
 
@@ -205,18 +194,6 @@ export function SyncConfigDialog({
     }
   }, [t]);
 
-  const handleOpenLogin = useCallback(async () => {
-    try {
-      await openUrl(DEVICE_LINK_URL);
-      // Hand off the verify step to its own dialog so the user has a
-      // focused place to paste the code, and so it doesn't visually
-      // stack with this dialog or any other modal currently on screen.
-      onLoginStarted?.();
-    } catch (error) {
-      console.error("Failed to open login link:", error);
-      showErrorToast(String(error));
-    }
-  }, [onLoginStarted]);
 
   const handleCloudLogout = useCallback(async () => {
     try {
@@ -246,99 +223,9 @@ export function SyncConfigDialog({
           <DialogDescription>{t("sync.description")}</DialogDescription>
         </DialogHeader>
 
-        {isLoggedIn && user ? (
-          <div className="grid gap-4 py-4">
-            <div className="flex gap-2 items-center text-sm">
-              <div className="size-2 rounded-full bg-success" />
-              {t("sync.cloud.connected")}
-            </div>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {t("sync.cloud.email")}
-                </span>
-                <span>{user.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {t("sync.cloud.plan")}
-                </span>
-                <span className="capitalize">
-                  {user.plan}
-                  {user.planPeriod ? ` (${user.planPeriod})` : ""}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {t("sync.cloud.profiles")}
-                </span>
-                <span>
-                  {t("sync.cloud.profileUsage", {
-                    used: user.cloudProfilesUsed,
-                    limit: user.profileLimit,
-                  })}
-                </span>
-              </div>
-              {user.teamName && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {t("sync.team.name")}
-                    </span>
-                    <span>{user.teamName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {t("sync.team.role")}
-                    </span>
-                    <span className="capitalize">
-                      {user.teamRole === "owner"
-                        ? t("sync.team.roleOwner")
-                        : user.teamRole === "admin"
-                          ? t("sync.team.roleAdmin")
-                          : t("sync.team.roleMember")}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground pt-1">
-                    {t("sync.team.manageOnWeb")}
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" asChild>
-                <a
-                  href="https://chihuabrowser.com/account"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("sync.cloud.manageAccount")}
-                </a>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => void handleCloudLogout()}
-              >
-                {t("sync.cloud.logout")}
-              </Button>
-            </div>
-          </div>
-        ) : (
+        {(
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full">
-              <TabsTrigger
-                value="cloud"
-                className="flex-1"
-                disabled={cloudBlocked}
-              >
-                <span className="flex items-center gap-2">
-                  {t("sync.cloud.tabLabel")}
-                  {cloudBlocked && <ProBadge />}
-                </span>
-              </TabsTrigger>
               <TabsTrigger
                 value="self-hosted"
                 className="flex-1"
@@ -350,26 +237,6 @@ export function SyncConfigDialog({
                 </span>
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="cloud">
-              {isCloudLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="size-6 rounded-full border-2 border-current animate-spin border-t-transparent" />
-                </div>
-              ) : (
-                <div className="grid gap-4 py-4">
-                  <p className="text-sm text-muted-foreground">
-                    {t("sync.cloud.deviceLinkInstructions")}
-                  </p>
-                  <Button
-                    onClick={() => void handleOpenLogin()}
-                    className="w-full"
-                  >
-                    {t("sync.cloud.openLogin")}
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
 
             <TabsContent value="self-hosted">
               {isLoading ? (

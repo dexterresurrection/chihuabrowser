@@ -70,6 +70,10 @@ impl BrowserRunner {
       None => return Ok(None),
     };
 
+    if crate::cloudvpn::is_cloudvpn_proxy(proxy_id) {
+      crate::cloudvpn::ensure_tunnel(proxy_id).await?;
+    }
+
     if PROXY_MANAGER.is_cloud_or_derived(proxy_id) {
       log::info!("Refreshing cloud proxy credentials before launch for proxy {proxy_id}");
     }

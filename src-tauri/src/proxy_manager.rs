@@ -448,6 +448,39 @@ impl ProxyManager {
     stored_proxies.contains_key(CLOUD_PROXY_ID)
   }
 
+  /// Makes the proxies with this id prefix exactly the given list. They come from a subscription, not from the user.
+  pub fn replace_managed_proxies(&self, prefix: &str, list: Vec<(String, String, ProxySettings)>) {
+    let stale: Vec<String> = {
+      let stored = self.stored_proxies.lock().unwrap();
+      stored
+        .keys()
+        .filter(|id| id.starts_with(prefix) && !list.iter().any(|(new, _, _)| new == *id))
+        .cloned()
+        .collect()
+    };
+    for id in stale {
+      let removed = self.stored_proxies.lock().unwrap().remove(&id);
+      if removed.is_some() {
+        if let Err(e) = self.delete_proxy_file(&id) {
+          log::warn!("Failed to delete proxy file: {e}");
+        }
+      }
+    }
+    for (id, name, settings) in list {
+      let mut proxy = StoredProxy::new(name, settings);
+      proxy.id = id.clone();
+      proxy.is_cloud_managed = true;
+      proxy.sync_enabled = false;
+      if let Err(e) = self.save_proxy(&proxy) {
+        log::warn!("Failed to save proxy: {e}");
+      }
+      self.stored_proxies.lock().unwrap().insert(id, proxy);
+    }
+    if let Err(e) = events::emit_empty("proxies-changed") {
+      log::error!("Failed to emit proxies-changed event: {e}");
+    }
+  }
+
   // Upsert the cloud-managed proxy (create or update)
   pub fn upsert_cloud_proxy(&self, proxy_settings: ProxySettings) -> Result<StoredProxy, String> {
     let mut stored_proxies = self.stored_proxies.lock().unwrap();

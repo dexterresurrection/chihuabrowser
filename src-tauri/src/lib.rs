@@ -48,6 +48,7 @@ pub mod sync;
 mod synchronizer;
 pub mod traffic_stats;
 mod chihua_manager;
+mod cloudvpn;
 // mod theme_detector; // removed: theme detection handled in webview via CSS prefers-color-scheme
 mod cookie_manager;
 pub mod events;
@@ -1026,6 +1027,9 @@ pub async fn validate_profile_network(
   }
 
   if let Some(proxy_id) = proxy_id.filter(|s| !s.is_empty()) {
+    if cloudvpn::is_cloudvpn_proxy(proxy_id) {
+      cloudvpn::ensure_tunnel(proxy_id).await?;
+    }
     // The cloud-included proxy is managed infrastructure; its only failure mode
     // is the user hitting their usage limit, which surfaces as a 402 at request
     // time. There's nothing to pre-validate here.
@@ -2136,6 +2140,12 @@ pub fn run() {
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
+      cloudvpn::cloudvpn_request_code,
+      cloudvpn::cloudvpn_verify_code,
+      cloudvpn::cloudvpn_login_password,
+      cloudvpn::cloudvpn_status,
+      cloudvpn::cloudvpn_sync_servers,
+      cloudvpn::cloudvpn_logout,
       confirm_quit,
       hide_to_tray,
       update_tray_menu,

@@ -187,6 +187,44 @@ impl SettingsManager {
     env!("CHIHUA_BROWSER_VAULT_PASSWORD").to_string()
   }
 
+  /// Encrypts small secrets for a file in the settings directory: Argon2 + AES-GCM, salt and nonce in front.
+  pub fn vault_encrypt(&self, plain: &[u8]) -> Result<Vec<u8>, String> {
+    let salt = SaltString::generate(&mut OsRng);
+    let hash = Argon2::default()
+      .hash_password(Self::get_vault_password().as_bytes(), &salt)
+      .map_err(|e| format!("Argon2 key derivation failed: {e}"))?;
+    let hash = hash.hash.ok_or("no hash")?;
+    let key_bytes: [u8; 32] = hash.as_bytes()[..32].try_into().map_err(|_| "Invalid key length")?;
+    let cipher = Aes256Gcm::new(&Key::<Aes256Gcm>::from(key_bytes));
+    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+    let ciphertext = cipher.encrypt(&nonce, plain).map_err(|e| format!("Encryption failed: {e}"))?;
+    let salt_str = salt.as_str();
+    let mut out = vec![salt_str.len() as u8];
+    out.extend_from_slice(salt_str.as_bytes());
+    out.extend_from_slice(&nonce);
+    out.extend_from_slice(&ciphertext);
+    Ok(out)
+  }
+
+  pub fn vault_decrypt(&self, data: &[u8]) -> Result<Vec<u8>, String> {
+    let salt_len = *data.first().ok_or("empty")? as usize;
+    if data.len() < 1 + salt_len + 12 {
+      return Err("short".to_string());
+    }
+    let salt_str = std::str::from_utf8(&data[1..1 + salt_len]).map_err(|e| e.to_string())?;
+    let salt = SaltString::from_b64(salt_str).map_err(|e| e.to_string())?;
+    let hash = Argon2::default()
+      .hash_password(Self::get_vault_password().as_bytes(), &salt)
+      .map_err(|e| format!("Argon2 key derivation failed: {e}"))?;
+    let hash = hash.hash.ok_or("no hash")?;
+    let key_bytes: [u8; 32] = hash.as_bytes()[..32].try_into().map_err(|_| "Invalid key length")?;
+    let cipher = Aes256Gcm::new(&Key::<Aes256Gcm>::from(key_bytes));
+    let nonce = &data[1 + salt_len..1 + salt_len + 12];
+    cipher
+      .decrypt(nonce.try_into().map_err(|_| "Invalid nonce")?, &data[1 + salt_len + 12..])
+      .map_err(|_| "Decryption failed".to_string())
+  }
+
   pub async fn generate_api_token(
     &self,
     app_handle: &tauri::AppHandle,

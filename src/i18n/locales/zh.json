@@ -1844,7 +1844,7 @@
     },
     "network": "网络",
     "integrations": "集成",
-    "account": "账号"
+    "account": "Cloud VPN"
   },
   "pageTitle": {
     "proxies": "网络",
@@ -2040,5 +2040,30 @@
     "title": "Camoufox 支持即将结束",
     "description": "Camoufox 配置文件的支持将于 2026 年 7 月 8 日结束。您有一个或多个 Camoufox 配置文件。请在此之前迁移到 Chihua——之后 Camoufox 配置文件可能会停止工作。",
     "acknowledge": "知道了"
+  },
+  "cloudVpn": {
+    "title": "Cloud VPN",
+    "subtitle": "Sign in and the servers of your subscription appear as proxies for profiles",
+    "email": "Email",
+    "password": "Password",
+    "code": "Code from the email",
+    "sendCode": "Get a code",
+    "signIn": "Sign in",
+    "usePassword": "Sign in with a password",
+    "useCode": "Sign in with a code",
+    "codeSent": "The code was sent to your email",
+    "consentRequired": "Accept the terms in your account on the website first, then sign in again",
+    "subscriptionActive": "Subscription is active",
+    "subscriptionNone": "No subscription",
+    "until": "until {{date}}",
+    "updateServers": "Update servers",
+    "serversUpdated": "Servers updated",
+    "signOut": "Sign out",
+    "hint": "Choose these servers as a proxy when creating a profile or in its settings."
+  },
+  "chihuaForm": {
+    "os": "System in the fingerprint",
+    "osHint": "Websites will see a device with this system.",
+    "randomize": "New fingerprint on every launch"
   }
 }

@@ -8,3 +8,5 @@ Modified from 2026-11-05:
 - renamed; the original project's name and logo are not used to identify this product
 - removed the vendor's account, cloud sync service, cloud proxy, team features, trial notices and plan checks
 - removed the proprietary Wayfern engine; the Chromium engine is now fingerprint-chromium
+
+Bundled in the Windows build: Xray-core (MPL-2.0, https://github.com/XTLS/Xray-core), unmodified release.

@@ -17,6 +17,26 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
       - run: python3 scripts/check_secrets.py
 
+  tunnel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: Xray for the real tests
+        run: |
+          curl -fsSL -o xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.10.31/Xray-linux-64.zip
+          echo "e4bd9119f50ae7c41658b1abd0679ae06f98bd864a2907ff33f2f2cf7081b214  xray.zip" | sha256sum -c
+          unzip -q xray.zip xray -d "$RUNNER_TEMP"
+      - working-directory: sidecar/tunnel
+        env:
+          GOFLAGS: -mod=mod
+        run: |
+          go vet ./...
+          CHIHUA_TEST_XRAY="$RUNNER_TEMP/xray" go test ./...
+
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -55,13 +75,15 @@ jobs:
       - run: |
           mkdir -p dist src-tauri/binaries
           echo '<!doctype html>' > dist/index.html
-          touch src-tauri/binaries/chihua-proxy-x86_64-unknown-linux-gnu
-          chmod +x src-tauri/binaries/chihua-proxy-x86_64-unknown-linux-gnu
+          for b in chihua-proxy chihua-tunnel xray; do
+            touch src-tauri/binaries/$b-x86_64-unknown-linux-gnu
+            chmod +x src-tauri/binaries/$b-x86_64-unknown-linux-gnu
+          done
       - working-directory: src-tauri
         run: cargo check --all-targets --message-format=short
 
   windows:
-    needs: [secrets, frontend, backend]
+    needs: [secrets, tunnel, frontend, backend]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
@@ -75,12 +97,25 @@ jobs:
         with:
           toolchain: stable
           targets: x86_64-pc-windows-msvc
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
       - uses: swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 #v2.9.1
         with:
           workspaces: src-tauri
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm exec tauri icon assets/logo.png
       - run: pnpm exec next build
+      - name: Tunnel program and xray
+        shell: bash
+        run: |
+          mkdir -p src-tauri/binaries
+          (cd sidecar/tunnel && GOFLAGS=-mod=mod go build -trimpath -ldflags "-s -w -H=windowsgui" -o ../../src-tauri/binaries/chihua-tunnel-x86_64-pc-windows-msvc.exe ./cmd/chihua-tunnel)
+          curl -fsSL -o xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.10.31/Xray-windows-64.zip
+          echo "2e04a9995a6f2ad1b28c0bb25c708ecb2695e43a1c9c7889c4b6ac2b48cf7a6a  xray.zip" | sha256sum -c
+          unzip -q -o xray.zip xray.exe -d xray-out
+          cp xray-out/xray.exe src-tauri/binaries/xray-x86_64-pc-windows-msvc.exe
       - shell: bash
         working-directory: src-tauri
         run: |

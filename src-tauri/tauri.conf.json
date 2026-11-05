@@ -19,7 +19,7 @@
     "active": true,
     "targets": ["app", "dmg", "nsis", "deb", "rpm", "appimage"],
     "category": "Productivity",
-    "externalBin": ["binaries/chihua-proxy"],
+    "externalBin": ["binaries/chihua-proxy", "binaries/chihua-tunnel", "binaries/xray"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
