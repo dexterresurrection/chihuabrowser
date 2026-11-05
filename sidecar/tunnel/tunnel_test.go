@@ -34,7 +34,7 @@ var sampleLinks = map[string]string{
 	"VLESS TLS WS":  "vless://" + uuid + "@example.com:443?type=ws&security=tls&path=%2Fws&host=cdn.example.org&sni=cdn.example.org#WS",
 	"VLESS gRPC":    "vless://" + uuid + "@example.com:443?type=grpc&security=tls&serviceName=svc&sni=example.org#gRPC",
 	"VLESS XHTTP":   "vless://" + uuid + "@example.com:443?type=xhttp&security=tls&path=%2Fx&mode=auto&sni=example.org#XHTTP",
-	"VLESS HTTPUp":  "vless://" + uuid + "@example.com:80?type=httpupgrade&security=none&path=%2Fu&host=a.example#HU",
+	"VLESS HTTPUp":  "vless://" + uuid + "@example.com:443?type=httpupgrade&security=tls&path=%2Fu&host=a.example#HU",
 	"Trojan":        "trojan://secret@example.com:443?sni=example.org#Trojan",
 	"Shadowsocks":   "ss://" + base64.RawStdEncoding.EncodeToString([]byte("aes-256-gcm:pw")) + "@example.com:8388#SS",
 	"Shadowsocks2":  "ss://aes-128-gcm:pw@example.com:8388#SS2",
