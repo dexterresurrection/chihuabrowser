@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Chihua
+Name[en]=Chihua
+GenericName=Web Browser
+X-GNOME-FullName=Chihua
+Comment=Simple Yet Powerful Anti-Detect Browser
+Exec=chihuabrowser %u
+Icon=chihuabrowser
+StartupNotify=true
+NoDisplay=false
+Categories=Network;WebBrowser;
+MimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;application/xhtml+xml;
+StartupWMClass=chihuabrowser
+Keywords=browser;web;internet;productivity;

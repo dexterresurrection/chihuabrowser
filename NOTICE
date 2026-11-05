@@ -1,0 +1,10 @@
+Chihua Browser is a modified version of Donut Browser.
+
+Original work: Donut Browser, Copyright (C) 2025 zhom@github
+Source: https://github.com/zhom/donutbrowser, tag v0.27.0, commit e1b7903
+License: GNU Affero General Public License v3.0, see LICENSE
+
+Modified from 2026-11-05:
+- renamed; the original project's name and logo are not used to identify this product
+- removed the vendor's account, cloud sync service, cloud proxy, team features, trial notices and plan checks
+- removed the proprietary Wayfern engine; the Chromium engine is now fingerprint-chromium
