@@ -174,10 +174,13 @@ jobs:
           "engine: $($chrome.FullName)"
           Set-Content page.html '<script>document.title=navigator.hardwareConcurrency+"|"+navigator.platform+"|"+navigator.userAgent</script><body><script>document.body.innerText=document.title</script>'
           $page = (Resolve-Path page.html).Path
-          $out = & $chrome.FullName --headless=new --no-sandbox --fingerprint=12345 --fingerprint-platform=linux --fingerprint-hardware-concurrency=7 --user-data-dir="$PWD\data" --dump-dom "file:///$page" 2>$null
-          $text = ($out -join ' ')
-          $text
-          if ($text -notmatch '>7\|Linux') { throw 'the switches had no effect' }
+          $url = 'file:///' + ($page -replace '\\','/')
+          $args = @('--headless=new','--no-sandbox','--fingerprint=12345','--fingerprint-platform=linux','--fingerprint-hardware-concurrency=7',"--user-data-dir=$PWD\data",'--virtual-time-budget=4000','--dump-dom',$url)
+          $p = Start-Process $chrome.FullName -ArgumentList $args -RedirectStandardOutput out.txt -RedirectStandardError err.txt -PassThru
+          if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force; throw 'engine did not finish' }
+          $text = Get-Content out.txt -Raw
+          "output: $text"
+          if ($text -notmatch '7\|Linux') { Get-Content err.txt -Tail 20; throw 'the switches had no effect' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
