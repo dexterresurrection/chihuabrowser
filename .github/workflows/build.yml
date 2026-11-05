@@ -130,3 +130,58 @@ jobs:
           path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 14
+
+  windows-smoke:
+    needs: [windows]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: chihua-browser-windows-x64
+          path: installer
+      - name: Install silently and start the app
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem installer -Filter *.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList '/S' -Wait
+          $exe = Get-ChildItem "$env:LOCALAPPDATA","$env:ProgramFiles" -Recurse -Filter 'chihuabrowser.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { $exe = Get-ChildItem "$env:LOCALAPPDATA","$env:ProgramFiles" -Recurse -Include 'Chihua*.exe' -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'uninstall|proxy|tunnel' } | Select-Object -First 1 }
+          if (-not $exe) { throw 'installed app not found' }
+          "installed: $($exe.FullName)"
+          Get-ChildItem $exe.DirectoryName | Select-Object Name,Length | Format-Table | Out-String
+          foreach ($side in 'chihua-proxy.exe','chihua-tunnel.exe','xray.exe') {
+            if (-not (Test-Path (Join-Path $exe.DirectoryName $side))) { throw "$side is not next to the app" }
+          }
+          & (Join-Path $exe.DirectoryName 'xray.exe') version | Select-Object -First 1
+          $p = Start-Process $exe.FullName -PassThru
+          Start-Sleep 25
+          if ($p.HasExited) { throw "app exited with code $($p.ExitCode)" }
+          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width,$b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size)
+          $bmp.Save("$PWD\screen.png")
+          Stop-Process -Id $p.Id -Force
+      - name: Engine applies its switches on Windows
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod -Headers @{ 'User-Agent' = 'chihua-ci' } https://api.github.com/repos/adryfish/fingerprint-chromium/releases/latest
+          $asset = $release.assets | Where-Object { $_.name -like '*_windows_x64.zip' } | Select-Object -First 1
+          Invoke-WebRequest $asset.browser_download_url -OutFile engine.zip
+          Expand-Archive engine.zip engine
+          $chrome = Get-ChildItem engine -Recurse -Filter chrome.exe | Select-Object -First 1
+          "engine: $($chrome.FullName)"
+          Set-Content page.html '<script>document.title=navigator.hardwareConcurrency+"|"+navigator.platform+"|"+navigator.userAgent</script><body><script>document.body.innerText=document.title</script>'
+          $page = (Resolve-Path page.html).Path
+          $out = & $chrome.FullName --headless=new --no-sandbox --fingerprint=12345 --fingerprint-platform=linux --fingerprint-hardware-concurrency=7 --user-data-dir="$PWD\data" --dump-dom "file:///$page" 2>$null
+          $text = ($out -join ' ')
+          $text
+          if ($text -notmatch '>7\|Linux') { throw 'the switches had no effect' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-screen
+          path: screen.png
+          if-no-files-found: warn
+          retention-days: 14
