@@ -242,8 +242,6 @@ impl ProfileImporter {
 
     let mapped = map_browser_type(browser_type);
 
-    if let Some(ref pid) = proxy_id {
-
     let existing_profiles = self.profile_manager.list_profiles()?;
     if existing_profiles
       .iter()

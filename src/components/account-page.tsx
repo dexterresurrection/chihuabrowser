@@ -34,7 +34,7 @@ interface AccountPageProps {
   isOpen: boolean;
   onClose: () => void;
   subPage?: boolean;
-  onOpenSignIn: () => void;
+  onOpenSignIn?: () => void;
 }
 
 type ConnectionStatus = "unknown" | "testing" | "connected" | "error";
