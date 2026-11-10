@@ -17,9 +17,20 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "nsis", "deb", "rpm", "appimage"],
+    "targets": [
+      "app",
+      "dmg",
+      "nsis",
+      "deb",
+      "rpm",
+      "appimage"
+    ],
     "category": "Productivity",
-    "externalBin": ["binaries/chihua-proxy", "binaries/chihua-tunnel", "binaries/xray"],
+    "externalBin": [
+      "binaries/chihua-proxy",
+      "binaries/chihua-tunnel",
+      "binaries/xray"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -42,11 +53,19 @@
     "linux": {
       "deb": {
         "desktopTemplate": "chihuabrowser.desktop",
-        "depends": ["xdg-utils", "libxdo3", "libayatana-appindicator3-1"]
+        "depends": [
+          "xdg-utils",
+          "libxdo3",
+          "libayatana-appindicator3-1"
+        ]
       },
       "rpm": {
         "desktopTemplate": "chihuabrowser.desktop",
-        "depends": ["xdg-utils", "libxdo", "libayatana-appindicator-gtk3"]
+        "depends": [
+          "xdg-utils",
+          "libxdo",
+          "libayatana-appindicator-gtk3"
+        ]
       },
       "appimage": {
         "files": {
@@ -58,12 +77,18 @@
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
+    },
+    "resources": {
+      "resources/cloudvpn-ext/": "cloudvpn-ext/"
     }
   },
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["http", "https"]
+        "schemes": [
+          "http",
+          "https"
+        ]
       }
     }
   }

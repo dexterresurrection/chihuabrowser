@@ -4,7 +4,6 @@ import confetti from "canvas-confetti";
 import { motion } from "motion/react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Logo } from "@/components/icons/logo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -56,7 +55,8 @@ export function ThankYouDialog({
             transition={{ ...spring, delay: 0.05 }}
             className="text-foreground"
           >
-            <Logo className="size-14" />
+            {/* эмблема Chihua: public/emblem.svg */}
+            <img src="/emblem.svg" alt="Chihua" className="size-24" />
           </motion.div>
 
           <div className="flex flex-col gap-2">

@@ -71,7 +71,7 @@ jobs:
         with:
           workspaces: src-tauri
       - run: pnpm install --no-frozen-lockfile
-      - run: pnpm exec tauri icon assets/logo.png
+      - run: pnpm exec tauri icon assets/icon.png
       - run: |
           mkdir -p dist src-tauri/binaries
           echo '<!doctype html>' > dist/index.html
@@ -105,7 +105,7 @@ jobs:
         with:
           workspaces: src-tauri
       - run: pnpm install --no-frozen-lockfile
-      - run: pnpm exec tauri icon assets/logo.png
+      - run: pnpm exec tauri icon assets/icon.png
       - run: pnpm exec next build
       - name: Tunnel program and xray
         shell: bash
@@ -116,6 +116,11 @@ jobs:
           echo "2e04a9995a6f2ad1b28c0bb25c708ecb2695e43a1c9c7889c4b6ac2b48cf7a6a  xray.zip" | sha256sum -c
           unzip -q -o xray.zip xray.exe -d xray-out
           cp xray-out/xray.exe src-tauri/binaries/xray-x86_64-pc-windows-msvc.exe
+          # Блокировщик и VPN Cloud VPN — в каждом профиле: расширение с нашего сайта, публичный файл
+          mkdir -p src-tauri/resources/cloudvpn-ext
+          curl -fsSL -o ext.zip https://cabinet.zjd.uk/app/CloudVPN-Chrome.zip
+          unzip -q -o ext.zip -d src-tauri/resources/cloudvpn-ext
+          test -f src-tauri/resources/cloudvpn-ext/manifest.json
       - shell: bash
         working-directory: src-tauri
         run: |

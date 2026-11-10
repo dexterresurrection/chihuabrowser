@@ -59,7 +59,7 @@
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
+  --primary: #0b8f55;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -75,7 +75,7 @@
   --warning-foreground: oklch(0.141 0.005 285.823);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  --ring: #0b8f55;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -97,30 +97,30 @@
 }
 
 .dark {
-  /* Chihua Mono — redesign monochrome palette */
-  --background: #070707;
+  /* Chihua: фирменная тёмно-зелёная тема Cloud VPN */
+  --background: #08110e;
   --foreground: #ffffff;
-  --card: #0e0e0e;
+  --card: #0d1915;
   --card-foreground: #e4e4e4;
-  --popover: #0e0e0e;
+  --popover: #0d1915;
   --popover-foreground: #e4e4e4;
-  --primary: #ffffff;
-  --primary-foreground: #070707;
-  --secondary: #161616;
+  --primary: #2ee08a;
+  --primary-foreground: #04140c;
+  --secondary: #13221d;
   --secondary-foreground: #e4e4e4;
-  --muted: #161616;
+  --muted: #13221d;
   --muted-foreground: #a0a0a0;
-  --accent: #1f1f1f;
+  --accent: #183026;
   --accent-foreground: #ffffff;
   --destructive: #ec6a5e;
   --destructive-foreground: #070707;
-  --success: #61c554;
+  --success: #2ee08a;
   --success-foreground: #070707;
   --warning: #f4be4f;
   --warning-foreground: #070707;
-  --border: rgba(255, 255, 255, 0.06);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #6b6b6b;
+  --border: rgba(46, 224, 138, 0.12);
+  --input: rgba(46, 224, 138, 0.18);
+  --ring: #2ee08a;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);

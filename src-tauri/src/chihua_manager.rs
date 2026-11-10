@@ -481,6 +481,15 @@ impl ChihuaManager {
       "--password-store=basic".to_string(),
     ];
 
+    // Расширение Cloud VPN (блокировщик рекламы и VPN) лежит рядом с программой и включается в каждом профиле
+    if let Some(ext) = std::env::current_exe()
+      .ok()
+      .and_then(|exe| exe.parent().map(|d| d.join("cloudvpn-ext")))
+      .filter(|d| d.join("manifest.json").is_file())
+    {
+      args.push(format!("--load-extension={}", ext.display()));
+    }
+
     if headless {
       args.push("--headless=new".to_string());
     } else if let Some((w, h)) = config

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Чихуахуа в духе 3D-игр конца 90-х: грани вместо гладких форм, светящиеся глаза, зелёная сфера на ошейнике -->
+  <defs>
+    <radialGradient id="orb" cx="248" cy="440" r="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eafff2"/><stop offset="0.35" stop-color="#3deb86"/><stop offset="1" stop-color="#00552a"/>
+    </radialGradient>
+    <radialGradient id="eye" cx="0" cy="0" r="1">
+      <stop offset="0" stop-color="#e0ffff"/><stop offset="0.45" stop-color="#4dfff0"/><stop offset="1" stop-color="#007a8c"/>
+    </radialGradient>
+    <filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <!-- уши -->
+  <polygon points="150,250 70,40 205,170" fill="#c98a45"/><polygon points="150,250 112,95 190,180" fill="#f2b9a4"/>
+  <polygon points="362,250 442,40 307,170" fill="#b07436"/><polygon points="362,250 400,95 322,180" fill="#e9a891"/>
+  <!-- голова гранями -->
+  <polygon points="256,140 175,165 140,255 256,240" fill="#e0a25c"/>
+  <polygon points="256,140 337,165 372,255 256,240" fill="#c98a45"/>
+  <polygon points="140,255 160,330 256,345 256,240" fill="#d39550"/>
+  <polygon points="372,255 352,330 256,345 256,240" fill="#b97b3c"/>
+  <!-- морда -->
+  <polygon points="205,300 256,280 307,300 290,370 256,385 222,370" fill="#f3d2a2"/>
+  <polygon points="256,280 307,300 290,370 256,385" fill="#e2bd88"/>
+  <!-- глаза -->
+  <g filter="url(#g)">
+    <ellipse cx="205" cy="255" rx="26" ry="24" fill="#10151c"/><ellipse cx="307" cy="255" rx="26" ry="24" fill="#10151c"/>
+    <ellipse cx="208" cy="256" rx="15" ry="15" fill="url(#eye)" transform="translate(0 0)"/>
+    <ellipse cx="304" cy="256" rx="15" ry="15" fill="url(#eye)"/>
+  </g>
+  <circle cx="213" cy="249" r="5" fill="#fff"/><circle cx="309" cy="249" r="5" fill="#fff"/>
+  <!-- нос и улыбка -->
+  <polygon points="240,312 272,312 256,330" fill="#1a1114"/>
+  <path d="M256 330 L256 342 M236 346 Q256 362 276 346" stroke="#1a1114" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M248 352 Q256 372 264 352 Z" fill="#ff6f8f"/>
+  <!-- брови: решительный вид -->
+  <polygon points="178,224 228,232 226,240 176,232" fill="#7a4a1e"/><polygon points="334,224 284,232 286,240 336,232" fill="#7a4a1e"/>
+  <!-- ошейник и сфера -->
+  <polygon points="168,392 256,410 344,392 336,420 256,438 176,420" fill="#b3122d"/>
+  <circle cx="256" cy="440" r="34" fill="url(#orb)" filter="url(#g)"/>
+  <circle cx="246" cy="430" r="8" fill="#fff" fill-opacity="0.8"/>
+</svg>

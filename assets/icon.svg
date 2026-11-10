@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="glow" cx="256" cy="256" r="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0.62" stop-color="#00e676" stop-opacity="0.55"/><stop offset="1" stop-color="#00e676" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ball" cx="205" cy="185" r="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eafff2"/><stop offset="0.28" stop-color="#46f08f"/><stop offset="0.68" stop-color="#00994a"/><stop offset="1" stop-color="#00361a"/>
+    </radialGradient>
+    <linearGradient id="iri" x1="90" y1="120" x2="420" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#33ffe8" stop-opacity="0.45"/><stop offset="0.35" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="#fff176" stop-opacity="0.35"/><stop offset="0.85" stop-color="#7ab0ff" stop-opacity="0.35"/><stop offset="1" stop-color="#7ab0ff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="spec" cx="200" cy="160" r="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="256" cy="256" r="250" fill="url(#glow)"/>
+  <circle cx="256" cy="256" r="190" fill="url(#ball)"/>
+  <circle cx="256" cy="256" r="190" fill="url(#iri)"/>
+  <ellipse cx="205" cy="165" rx="78" ry="46" fill="url(#spec)"/>
+  <path d="M120 300 A150 150 0 0 0 360 380" fill="none" stroke="#b9ffd6" stroke-opacity="0.35" stroke-width="10" stroke-linecap="round"/>
+</svg>

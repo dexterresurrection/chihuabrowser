@@ -70,3 +70,7 @@ nodecar/nodecar-bin
 *.pem
 *.key
 node_modules/
+
+# расширение Cloud VPN скачивается при сборке
+src-tauri/resources/cloudvpn-ext/*
+!src-tauri/resources/cloudvpn-ext/README.md
