@@ -4,9 +4,20 @@
   <p>Free anti-detect browser: separate profiles, each with its own fingerprint, cookies, extensions and proxy.</p>
 </div>
 
-**Status: in development, no release yet.**
+**Status: test builds.** Every build is published right away for testing (Cloud VPN bot → «📲 Приложения»).
 
 Everything is free. There are no paid plans, no accounts with a vendor, no trial and no telemetry.
+
+## What it is
+
+A fork of Donut Browser 0.27 (the last version with a free engine). Everything that talked to the original vendor is
+removed: their cloud login and sync, team locks, commercial licence checks, the proprietary Wayfern engine and its
+terms. Cloud VPN is built in instead:
+
+- sign in to your Cloud VPN account inside the browser (code by e-mail or password);
+- servers from your subscription appear as proxies, any profile can use one;
+- the tunnel (Xray) runs inside the browser, nothing else to install;
+- the Cloud VPN extension (VPN and ad blocking) is added to every profile.
 
 ## Engines
 
