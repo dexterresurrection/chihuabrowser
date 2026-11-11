@@ -76,7 +76,10 @@
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": ""
+      "timestampUrl": "",
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
     },
     "resources": {
       "resources/cloudvpn-ext/": "cloudvpn-ext/"
