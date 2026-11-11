@@ -2059,11 +2059,25 @@
     "updateServers": "Update servers",
     "serversUpdated": "Servers updated",
     "signOut": "Sign out",
-    "hint": "Choose these servers as a proxy when creating a profile or in its settings."
+    "hint": "Choose these servers as a proxy when creating a profile or in its settings.",
+    "viaTelegram": "Sign in with Telegram",
+    "viaBrowser": "Sign in on the website: Google, Discord, GitHub, email",
+    "deviceCode": "Sign-in code",
+    "deviceHint": "Approve the sign-in on the page that opened and compare the code. The browser signs in by itself.",
+    "openSite": "Open the website again",
+    "openBot": "Open the bot",
+    "cancel": "Cancel",
+    "deviceExpired": "Time to approve ran out, start again",
+    "signedIn": "Signed in",
+    "orEmail": "Or with email:"
   },
   "chihuaForm": {
     "os": "System in the fingerprint",
     "osHint": "Websites will see a device with this system.",
-    "randomize": "New fingerprint on every launch"
+    "randomize": "New fingerprint on every launch",
+    "device": "Device",
+    "anyDevice": "Any (by the system below)",
+    "deviceHint": "Websites see this device. Every profile is its own device with a fresh random fingerprint.",
+    "newDevice": "New device"
   }
 }

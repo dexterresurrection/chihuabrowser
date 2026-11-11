@@ -2143,6 +2143,8 @@ pub fn run() {
       cloudvpn::cloudvpn_request_code,
       cloudvpn::cloudvpn_verify_code,
       cloudvpn::cloudvpn_login_password,
+      cloudvpn::cloudvpn_device_start,
+      cloudvpn::cloudvpn_device_poll,
       cloudvpn::cloudvpn_status,
       cloudvpn::cloudvpn_sync_servers,
       cloudvpn::cloudvpn_logout,

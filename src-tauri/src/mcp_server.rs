@@ -1161,7 +1161,7 @@ impl McpServer {
       // Synchronizer tools
       McpTool {
         name: "start_sync_session".to_string(),
-        description: "Start a synchronizer session. Launches a leader profile and follower profiles, then mirrors all actions from the leader to the followers in real time. Only Chihua profiles are supported. Requires paid subscription.".to_string(),
+        description: "Start a synchronizer session. Launches a leader profile and follower profiles, then mirrors all actions from the leader to the followers in real time. Only Chihua profiles are supported.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -1642,9 +1642,7 @@ impl McpServer {
       "connect_vpn" => self.handle_connect_vpn(arguments).await,
       "disconnect_vpn" => self.handle_disconnect_vpn(arguments).await,
       "get_vpn_status" => self.handle_get_vpn_status(arguments).await,
-      // Fingerprint management — viewing is free everywhere (matches the REST
-      // API and the get_profile tool, which already expose the config); only
-      // editing requires a paid plan.
+      // Fingerprint management: viewing and editing, free like everything in Chihua
       "get_profile_fingerprint" => self.handle_get_profile_fingerprint(arguments).await,
       "update_profile_fingerprint" => {
         self.handle_update_profile_fingerprint(arguments).await
@@ -1678,7 +1676,7 @@ impl McpServer {
       "stop_sync_session" => self.handle_stop_sync_session(arguments).await,
       "get_sync_sessions" => self.handle_get_sync_sessions().await,
       "remove_sync_follower" => self.handle_remove_sync_follower(arguments).await,
-      // Browser interaction tools (require paid subscription)
+      // Browser interaction tools
       "navigate" => {
         self.handle_navigate(arguments).await
       }

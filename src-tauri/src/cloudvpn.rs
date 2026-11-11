@@ -49,6 +49,17 @@ pub struct CloudVpnStatus {
 
 lazy_static::lazy_static! {
   static ref TUNNELS: AsyncMutex<HashMap<String, Child>> = AsyncMutex::new(HashMap::new());
+  /// Секрет текущего входа по коду: им опрашивается кабинет, наружу не отдаётся.
+  static ref DEVICE_TOKEN: AsyncMutex<Option<String>> = AsyncMutex::new(None);
+}
+
+/// Вход по коду: код для человека и ссылки (страница кабинета — любой способ входа, бот — Telegram).
+#[derive(Debug, Clone, Serialize)]
+pub struct DeviceLogin {
+  pub user_code: String,
+  pub verification_url: String,
+  pub telegram_url: Option<String>,
+  pub expires_in: u64,
 }
 
 pub fn is_cloudvpn_proxy(proxy_id: &str) -> bool {
@@ -162,6 +173,53 @@ pub async fn cloudvpn_login_password(email: String, password: String) -> Result<
     return Err(detail(&value, "Неверный логин или пароль"));
   }
   store_tokens(&email, &value)
+}
+
+/// Вход по коду, как на телевизорах: кабинет выдаёт код и ссылку, человек входит на сайте любым способом
+/// (Telegram, Google, Discord, GitHub, почта) или через бота и подтверждает код; браузер забирает вход сам.
+#[tauri::command]
+pub async fn cloudvpn_device_start() -> Result<DeviceLogin, String> {
+  let (status, value) = call(reqwest::Method::POST, "/cabinet/auth/device/request", None, None).await?;
+  if status >= 400 {
+    return Err(detail(&value, "Вход по коду сейчас недоступен"));
+  }
+  let text = |key: &str| value.get(key).and_then(|v| v.as_str()).map(str::to_string);
+  let token = text("token").ok_or("В ответе нет кода входа")?;
+  let login = DeviceLogin {
+    user_code: text("user_code").unwrap_or_default(),
+    verification_url: text("verification_url").ok_or("В ответе нет ссылки входа")?,
+    telegram_url: text("telegram_url"),
+    expires_in: value.get("expires_in").and_then(|v| v.as_u64()).unwrap_or(600),
+  };
+  *DEVICE_TOKEN.lock().await = Some(token);
+  Ok(login)
+}
+
+/// «pending» — человек ещё не подтвердил; «done» — вход выполнен.
+#[tauri::command]
+pub async fn cloudvpn_device_poll() -> Result<String, String> {
+  let token = DEVICE_TOKEN.lock().await.clone().ok_or("Начните вход заново")?;
+  let (status, value) = call(reqwest::Method::POST, "/cabinet/auth/deeplink/poll", None, Some(json!({ "token": token }))).await?;
+  match status {
+    202 | 429 => Ok("pending".to_string()),
+    200 => {
+      let user = value.get("user");
+      let field = |key: &str| user.and_then(|u| u.get(key)).and_then(|v| v.as_str()).filter(|s| !s.is_empty());
+      let name = field("email")
+        .map(str::to_string)
+        .or_else(|| field("username").map(|u| format!("@{u}")))
+        .or_else(|| field("first_name").map(str::to_string))
+        .unwrap_or_else(|| "Cloud VPN".to_string());
+      store_tokens(&name, &value)?;
+      *DEVICE_TOKEN.lock().await = None;
+      Ok("done".to_string())
+    }
+    410 => {
+      *DEVICE_TOKEN.lock().await = None;
+      Err("Код устарел, начните вход заново".to_string())
+    }
+    _ => Err(detail(&value, "Вход не удался")),
+  }
 }
 
 /// An API call as the signed-in user; refreshes the short-lived token once on 401.

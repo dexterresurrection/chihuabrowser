@@ -1184,6 +1184,21 @@ impl ProfileManager {
       );
     }
 
+    // Новое устройство из библиотеки или другая система: форма сбрасывает отпечаток — создаём новый сразу,
+    // чтобы профиль никогда не запускался без отпечатка (с настоящими данными компьютера)
+    let mut config = config;
+    if config.fingerprint.is_none() {
+      match self
+        .chihua_manager
+        .generate_fingerprint_config(&app_handle, &profile, &config)
+        .await
+      {
+        Ok(fp) => config.fingerprint = Some(fp),
+        Err(e) => log::warn!("Chihua fingerprint not regenerated: {e}"),
+      }
+      config.proxy = None;
+    }
+
     // Update the Chihua configuration
     profile.chihua_config = Some(config);
 

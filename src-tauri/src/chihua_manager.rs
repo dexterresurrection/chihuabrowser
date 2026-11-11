@@ -21,6 +21,9 @@ pub struct ChihuaConfig {
   pub randomize_fingerprint_on_launch: Option<bool>,
   #[serde(default)]
   pub os: Option<String>,
+  /// Устройство из библиотеки (DEVICE_PRESETS): система, бренд браузера и число ядер.
+  #[serde(default)]
+  pub device: Option<String>,
   #[serde(default)]
   pub screen_max_width: Option<u32>,
   #[serde(default)]
@@ -254,6 +257,18 @@ impl ChihuaManager {
     Err("No response received from CDP".into())
   }
 
+  /// Библиотека устройств: id → (система, бренд браузера, ядра). Те же id — в chihua-config-form.tsx.
+  pub const DEVICE_PRESETS: [(&'static str, &'static str, &'static str, u32); 8] = [
+    ("win-laptop", "windows", "Chrome", 4),
+    ("win-home", "windows", "Chrome", 8),
+    ("win-gaming", "windows", "Chrome", 16),
+    ("win-edge", "windows", "Edge", 8),
+    ("win-opera", "windows", "Opera", 6),
+    ("mac-air", "macos", "Chrome", 8),
+    ("mac-pro", "macos", "Chrome", 12),
+    ("linux", "linux", "Chrome", 8),
+  ];
+
   /// The engine builds the whole device from the seed, so a profile only keeps the seed and the
   /// few values passed as switches. A new seed is a new device.
   pub async fn generate_fingerprint_config(
@@ -274,11 +289,18 @@ impl ChihuaManager {
       });
     let random = uuid::Uuid::new_v4().as_u128();
     let seed = ((random >> 32) as u32).max(1);
-    let cores = [4u32, 6, 8, 12, 16][(random % 5) as usize];
+    let preset = config
+      .device
+      .as_deref()
+      .and_then(|id| Self::DEVICE_PRESETS.iter().find(|p| p.0 == id));
+    let (os, brand, cores) = match preset {
+      Some((_, os, brand, cores)) => (*os, *brand, *cores),
+      None => (os, "Chrome", [4u32, 6, 8, 12, 16][(random % 5) as usize]),
+    };
     let mut fingerprint = json!({
       "seed": seed,
       "platform": os,
-      "brand": "Chrome",
+      "brand": brand,
       "hardwareConcurrency": cores,
     });
 

@@ -561,7 +561,8 @@ impl BrowserRunner {
 
       // Check if we need to generate a new fingerprint on every launch
       let mut updated_profile = profile.clone();
-      if chihua_config.randomize_fingerprint_on_launch == Some(true) {
+      let randomize = chihua_config.randomize_fingerprint_on_launch == Some(true);
+      if randomize || chihua_config.fingerprint.is_none() {
         log::info!(
           "Generating random fingerprint for Chihua profile: {}",
           profile.name
@@ -590,7 +591,9 @@ impl BrowserRunner {
         let mut updated_chihua_config = updated_profile.chihua_config.clone().unwrap_or_default();
         updated_chihua_config.fingerprint = Some(new_fingerprint);
         // Preserve the randomize flag so it persists across launches
-        updated_chihua_config.randomize_fingerprint_on_launch = Some(true);
+        if randomize {
+          updated_chihua_config.randomize_fingerprint_on_launch = Some(true);
+        }
         // Preserve the OS setting so it's used for future fingerprint generation
         if chihua_config.os.is_some() {
           updated_chihua_config.os = chihua_config.os.clone();

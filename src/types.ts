@@ -421,6 +421,7 @@ export interface ChihuaConfig {
   fingerprint?: string; // JSON string of the complete fingerprint config
   randomize_fingerprint_on_launch?: boolean; // Generate new fingerprint on every launch
   os?: ChihuaOS; // Operating system for fingerprint generation
+  device?: string; // Device from the library (DEVICE_PRESETS in chihua_manager.rs)
 }
 
 // Chihua fingerprint config - matches the C++ FingerprintData structure

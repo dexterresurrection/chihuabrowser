@@ -618,9 +618,8 @@ pub async fn get_api_server_status() -> Result<Option<u16>, String> {
 }
 
 /// Serialize a browser config (camoufox/chihua) to JSON for an API response.
-/// Viewing a profile's fingerprint is available to every API caller; only
-/// editing it (via `update_profile`) and launching/killing profiles
-/// programmatically require an active paid plan.
+/// Viewing and editing a profile's fingerprint and launching/killing profiles
+/// are available to every API caller with the token (no paid plans in Chihua).
 fn config_to_api_value<T: serde::Serialize>(config: Option<&T>) -> Option<serde_json::Value> {
   serde_json::to_value(config?).ok()
 }
@@ -1880,7 +1879,6 @@ async fn open_url_in_profile(
   responses(
     (status = 204, description = "Browser process killed successfully"),
     (status = 401, description = "Unauthorized"),
-    (status = 402, description = "Active paid plan required"),
     (status = 404, description = "Profile not found"),
     (status = 500, description = "Internal server error")
   ),
@@ -1893,8 +1891,6 @@ async fn kill_profile(
   Path(id): Path<String>,
   State(state): State<ApiServerState>,
 ) -> Result<StatusCode, StatusCode> {
-  // Programmatically launching and stopping profiles is a paid feature; the
-  // run/open-url handlers gate the same way.
 
   let profile_manager = ProfileManager::instance();
   let profiles = profile_manager
