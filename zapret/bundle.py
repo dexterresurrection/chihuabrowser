@@ -113,7 +113,7 @@ def main():
 
     presets = []
     for n in sorted((n for n in f.namelist() if n.endswith('.bat') and '/service' not in n and n.count('/') == 1),
-                    key=lambda n: (n.rsplit('/', 1)[1] != 'general.bat', natural(n.rsplit('/', 1)[1].replace(')', ''))))):
+                    key=lambda n: (n.rsplit('/', 1)[1] != 'general.bat', natural(n.rsplit('/', 1)[1][:-4].replace(')', '')))):
         args = preset_args(f.read(n).decode('utf-8', 'replace'))
         if not args:
             continue
