@@ -430,23 +430,22 @@ func start(o options) error {
 	desc := "Обход блокировок без VPN: zapret (bol-van) со стратегией Flowseal «" + preset + "». Включается и выключается в Cloud VPN, Cloud Browser и Chihua Browser."
 	s, err := m.OpenService(serviceName)
 	if err == nil {
-		c, cerr := s.Config()
-		if cerr != nil {
-			s.Close()
-			return cerr
-		}
+		// служба уже есть (смена стратегии): меняем только команду, автозапуск и имена — прямыми вызовами,
+		// mgr.UpdateConfig на Windows отвечал «The array bounds are invalid» (проверено на раннере GitHub)
 		parts := []string{windows.EscapeArg(winws)}
 		for _, a := range args {
 			parts = append(parts, windows.EscapeArg(a))
 		}
-		c.BinaryPathName = strings.Join(parts, " ")
-		c.StartType = mgr.StartAutomatic
-		c.DisplayName = displayName
-		c.Description = desc
-		if err := s.UpdateConfig(c); err != nil {
+		bin, _ := windows.UTF16PtrFromString(strings.Join(parts, " "))
+		disp, _ := windows.UTF16PtrFromString(displayName)
+		if err := windows.ChangeServiceConfig(s.Handle, windows.SERVICE_NO_CHANGE, windows.SERVICE_AUTO_START, windows.SERVICE_NO_CHANGE,
+			bin, nil, nil, nil, nil, nil, disp); err != nil {
 			s.Close()
 			return fmt.Errorf("служба: %w", err)
 		}
+		d, _ := windows.UTF16PtrFromString(desc)
+		sd := windows.SERVICE_DESCRIPTION{Description: d}
+		_ = windows.ChangeServiceConfig2(s.Handle, windows.SERVICE_CONFIG_DESCRIPTION, (*byte)(unsafe.Pointer(&sd)))
 	} else {
 		s, err = m.CreateService(serviceName, winws, mgr.Config{DisplayName: displayName, Description: desc, StartType: mgr.StartAutomatic}, args...)
 		if err != nil {

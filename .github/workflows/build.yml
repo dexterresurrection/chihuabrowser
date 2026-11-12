@@ -206,26 +206,33 @@ jobs:
             Write-Host "zapretctl $($a -join ' ') -> $out"
             return ($out.Split("`n")[-1] | ConvertFrom-Json)
           }
-          $s = Ctl @('status')
-          if (-not $s.status.supported) { throw 'status: not supported' }
-          if ($s.status.presets.Count -lt 20) { throw 'presets are missing' }
-          $r = Ctl @('start', '--preset', 'general')
-          if (-not $r.ok) { throw "start failed: $($r.error)" }
-          Start-Sleep 3
-          $s = Ctl @('status')
-          if (-not $s.status.running) { throw 'not running after start' }
-          Get-Service CloudVPNZapret | Format-List Name,Status,StartType | Out-String | Write-Host
-          Get-Process winws | Select-Object Id,Path | Format-Table | Out-String | Write-Host
-          try { Write-Host "generate_204 through zapret: $((Invoke-WebRequest https://www.google.com/generate_204 -UseBasicParsing -TimeoutSec 20).StatusCode)" } catch { Write-Host "web: $_" }
-          $r = Ctl @('start', '--preset', 'general (ALT)')
-          if (-not $r.ok) { throw "switching the strategy failed: $($r.error)" }
-          $r = Ctl @('stop')
+          try {
+            $s = Ctl @('status')
+            if (-not $s.status.supported) { throw 'status: not supported' }
+            if ($s.status.presets.Count -lt 20) { throw 'presets are missing' }
+            $r = Ctl @('start', '--preset', 'general')
+            if (-not $r.ok) { throw "start failed: $($r.error)" }
+            Start-Sleep 3
+            $s = Ctl @('status')
+            if (-not $s.status.running) { throw 'not running after start' }
+            Get-CimInstance Win32_Service -Filter "Name='CloudVPNZapret'" | Format-List Name,State,StartMode,PathName | Out-String | Write-Host
+            Get-Process winws | Select-Object Id,Path | Format-Table | Out-String | Write-Host
+            try { Write-Host "generate_204 through zapret: $((Invoke-WebRequest https://www.google.com/generate_204 -UseBasicParsing -TimeoutSec 20).StatusCode)" } catch { Write-Host "web: $_" }
+            $r = Ctl @('start', '--preset', 'general (ALT)')
+            if (-not $r.ok) { throw "switching the strategy failed: $($r.error)" }
+            if (-not $r.status.running -or $r.status.preset -ne 'general (ALT)') { throw 'the new strategy is not running' }
+            $sddl = (Get-Acl "$env:ProgramData\CloudVPN\zapret").Sddl
+            Write-Host "acl: $sddl"
+            if (-not $sddl.StartsWith('O:BA')) { throw 'the shared folder is not owned by Administrators' }
+          } finally {
+            $r = Ctl @('stop')
+            $s = Ctl @('status')
+            Get-Content "$env:ProgramData\CloudVPN\zapret\zapretctl.log" -ErrorAction SilentlyContinue | Write-Host
+          }
           if (-not $r.ok) { throw "stop failed: $($r.error)" }
-          $s = Ctl @('status')
           if ($s.status.installed -or $s.status.running) { throw 'the service is still there after stop' }
           if (Get-Process winws -ErrorAction SilentlyContinue) { throw 'winws is still running after stop' }
-          Write-Host (Get-Acl "$env:ProgramData\CloudVPN\zapret").Sddl
-          Get-Content "$env:ProgramData\CloudVPN\zapret\zapretctl.log" | Write-Host
+          Write-Host 'zapret: on, strategy switch, off - all good'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
