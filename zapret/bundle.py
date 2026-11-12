@@ -79,6 +79,11 @@ def preset_args(bat):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):  # консоль Windows в cp1252, а сообщения по-русски
+        try:
+            stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', required=True)
     ap.add_argument('--cache', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), '.cache'))
