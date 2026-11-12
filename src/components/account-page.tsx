@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 import { cn } from "@/lib/utils";
+import { ZapretCard } from "./zapret-card";
 
 interface CloudVpnServer {
   proxy_id: string;
@@ -361,6 +362,7 @@ export function AccountPage({ isOpen, onClose, subPage }: AccountPageProps) {
               </ul>
             </div>
           )}
+          <ZapretCard />
         </div>
       </DialogContent>
     </Dialog>

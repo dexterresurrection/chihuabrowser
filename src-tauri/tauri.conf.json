@@ -82,7 +82,8 @@
       }
     },
     "resources": {
-      "resources/cloudvpn-ext/": "cloudvpn-ext/"
+      "resources/cloudvpn-ext/": "cloudvpn-ext/",
+      "resources/zapret/": "zapret/"
     }
   },
   "plugins": {

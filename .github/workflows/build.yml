@@ -121,6 +121,14 @@ jobs:
           curl -fsSL -o ext.zip https://cabinet.zjd.uk/app/CloudVPN-Chrome.zip
           unzip -q -o ext.zip -d src-tauri/resources/cloudvpn-ext
           test -f src-tauri/resources/cloudvpn-ext/manifest.json
+      - name: zapret (обход блокировок без VPN)
+        shell: bash
+        run: |
+          # winws из релиза bol-van/zapret и стратегии Flowseal, архивы закреплены по SHA-256 (zapret/bundle.py)
+          (cd zapret/zapretctl && go build -trimpath -ldflags "-s -w" -o ../../zapretctl.exe .)
+          python zapret/bundle.py --out src-tauri/resources/zapret --zapretctl zapretctl.exe
+          test -f src-tauri/resources/zapret/bin/winws.exe
+          test -f src-tauri/resources/zapret/zapretctl.exe
       - shell: bash
         working-directory: src-tauri
         run: |
@@ -186,6 +194,38 @@ jobs:
           $text = Get-Content out.txt -Raw
           "output: $text"
           if ($text -notmatch '7\|Linux') { Get-Content err.txt -Tail 20; throw 'the switches had no effect' }
+      - name: zapret switches on and off on a real Windows
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ctl = Get-ChildItem "$env:LOCALAPPDATA","$env:ProgramFiles" -Recurse -Filter 'zapretctl.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $ctl) { throw 'zapretctl.exe is not installed next to the app' }
+          Write-Host "zapretctl: $($ctl.FullName)"
+          function Ctl([string[]]$a) {
+            $out = (& $ctl.FullName @a | Out-String).Trim()
+            Write-Host "zapretctl $($a -join ' ') -> $out"
+            return ($out.Split("`n")[-1] | ConvertFrom-Json)
+          }
+          $s = Ctl @('status')
+          if (-not $s.status.supported) { throw 'status: not supported' }
+          if ($s.status.presets.Count -lt 20) { throw 'presets are missing' }
+          $r = Ctl @('start', '--preset', 'general')
+          if (-not $r.ok) { throw "start failed: $($r.error)" }
+          Start-Sleep 3
+          $s = Ctl @('status')
+          if (-not $s.status.running) { throw 'not running after start' }
+          Get-Service CloudVPNZapret | Format-List Name,Status,StartType | Out-String | Write-Host
+          Get-Process winws | Select-Object Id,Path | Format-Table | Out-String | Write-Host
+          try { Write-Host "generate_204 through zapret: $((Invoke-WebRequest https://www.google.com/generate_204 -UseBasicParsing -TimeoutSec 20).StatusCode)" } catch { Write-Host "web: $_" }
+          $r = Ctl @('start', '--preset', 'general (ALT)')
+          if (-not $r.ok) { throw "switching the strategy failed: $($r.error)" }
+          $r = Ctl @('stop')
+          if (-not $r.ok) { throw "stop failed: $($r.error)" }
+          $s = Ctl @('status')
+          if ($s.status.installed -or $s.status.running) { throw 'the service is still there after stop' }
+          if (Get-Process winws -ErrorAction SilentlyContinue) { throw 'winws is still running after stop' }
+          Write-Host (Get-Acl "$env:ProgramData\CloudVPN\zapret").Sddl
+          Get-Content "$env:ProgramData\CloudVPN\zapret\zapretctl.log" | Write-Host
       - uses: actions/upload-artifact@v4
         if: always()
         with:

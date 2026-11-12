@@ -2079,5 +2079,20 @@
     "anyDevice": "Any (by the system below)",
     "deviceHint": "Websites see this device. Every profile is its own device with a fresh random fingerprint.",
     "newDevice": "New device"
+  },
+  "zapret": {
+    "title": "Unblocking without VPN (zapret)",
+    "hint": "zapret bypasses blocks of YouTube, Discord and other sites for the whole computer, without a VPN. It is shared with Cloud VPN for Windows and Cloud Browser: turned on in one app, it is on everywhere. Windows will ask for administrator rights.",
+    "on": "on",
+    "off": "off",
+    "enable": "Turn on",
+    "disable": "Turn off",
+    "apply": "Change strategy",
+    "preset": "Strategy",
+    "enabled": "zapret is on",
+    "disabled": "zapret is off",
+    "failed": "zapret did not switch",
+    "others": "Another unblocking tool is already running: {{list}}. Turn it off so they do not interfere.",
+    "antivirus": "Antivirus software sometimes flags the WinDivert driver used by zapret. It is a false positive: the files come from the official zapret (bol-van) and Flowseal releases. If a strategy does not help, pick another and press Change strategy."
   }
 }
