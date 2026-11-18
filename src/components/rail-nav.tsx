@@ -8,13 +8,21 @@ import { GoGear, GoKebabHorizontal } from "react-icons/go";
 import {
   LuCloud,
   LuKeyboard,
+  LuLayoutDashboard,
+  LuLayoutGrid,
+  LuMail,
+  LuMessageCircle,
   LuPlug,
   LuPuzzle,
+  LuShare2,
   LuUser,
   LuUsers,
+  LuWallet,
+  LuZap,
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { Logo } from "./icons/logo";
+import type { ServiceId } from "./services-page";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export type AppPage =
@@ -27,7 +35,8 @@ export type AppPage =
   | "integrations"
   | "account"
   | "import"
-  | "shortcuts";
+  | "shortcuts"
+  | ServiceId;
 
 const CLICK_THRESHOLD = 5;
 const CLICK_WINDOW_MS = 2000;
@@ -253,6 +262,17 @@ const TOP_ITEMS: RailItem[] = [
   { page: "account", Icon: LuCloud, labelKey: "rail.account" },
 ];
 
+// Наши сервисы: модули открываются внутри окна Chihua
+const SERVICE_ITEMS: RailItem[] = [
+  { page: "cabinet", Icon: LuLayoutDashboard, labelKey: "rail.cabinet" },
+  { page: "mail", Icon: LuMail, labelKey: "rail.mail" },
+  { page: "messenger", Icon: LuMessageCircle, labelKey: "rail.messenger" },
+  { page: "social", Icon: LuShare2, labelKey: "rail.social" },
+  { page: "wallet", Icon: LuWallet, labelKey: "rail.wallet" },
+  { page: "zapret", Icon: LuZap, labelKey: "rail.zapret" },
+  { page: "apps", Icon: LuLayoutGrid, labelKey: "rail.apps" },
+];
+
 interface MoreMenuItem {
   page: AppPage;
   Icon: React.ComponentType<{ className?: string }>;
@@ -339,7 +359,16 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
       <div className="w-5 h-px bg-border my-1 shrink-0" />
 
       <div className="flex flex-col items-center gap-1 w-full min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {TOP_ITEMS.map(({ page, Icon, labelKey }) => {
+        {[...TOP_ITEMS, null, ...SERVICE_ITEMS].map((item, i) => {
+          if (!item) {
+            return (
+              <div
+                key={`sep-${i}`}
+                className="w-5 h-px bg-border my-1 shrink-0"
+              />
+            );
+          }
+          const { page, Icon, labelKey } = item;
           const active = currentPage === page;
           return (
             <Tooltip key={page} delayDuration={300}>

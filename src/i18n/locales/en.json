@@ -1844,7 +1844,14 @@
     },
     "network": "Network",
     "integrations": "Integrations",
-    "account": "Cloud VPN"
+    "account": "Cloud VPN",
+    "cabinet": "Account",
+    "mail": "Mail",
+    "messenger": "Messenger",
+    "social": "Social",
+    "wallet": "Wallet",
+    "zapret": "Zapret",
+    "apps": "Apps"
   },
   "pageTitle": {
     "proxies": "Network",
@@ -1855,7 +1862,14 @@
     "integrations": "Integrations",
     "account": "Account",
     "import": "Import profile",
-    "shortcuts": "Keyboard shortcuts"
+    "shortcuts": "Keyboard shortcuts",
+    "cabinet": "Account",
+    "mail": "Mail",
+    "messenger": "Messenger",
+    "social": "Social",
+    "wallet": "Wallet",
+    "zapret": "Unblocking",
+    "apps": "Apps"
   },
   "encryption": {
     "required": {
@@ -2094,5 +2108,47 @@
     "failed": "zapret did not switch",
     "others": "Another unblocking tool is already running: {{list}}. Turn it off so they do not interfere.",
     "antivirus": "Antivirus software sometimes flags the WinDivert driver used by zapret. It is a false positive: the files come from the official zapret (bol-van) and Flowseal releases. If a strategy does not help, pick another and press Change strategy."
+  },
+  "services": {
+    "loading": "Loading",
+    "home": "Home",
+    "reload": "Reload",
+    "openInBrowser": "Open in the system browser",
+    "mirror": "RU mirror",
+    "ourServer": "Our server",
+    "version": "version {{version}}",
+    "install": "Install",
+    "openApp": "Open {{name}}",
+    "installed": "Installed on this computer",
+    "installedVersion": "Installed version {{version}}",
+    "notInstalled": "Not installed on this computer — install it and an \"Open\" button appears here.",
+    "cabinet": {
+      "title": "Cloud VPN account",
+      "desc": "Subscription, balance, keys and every service feature"
+    },
+    "mail": {
+      "title": "Cloud Mail",
+      "desc": "Encrypted mail @zjd.uk"
+    },
+    "messenger": {
+      "title": "Cloud Messenger",
+      "desc": "End-to-end encrypted messages and calls, also through our proxies."
+    },
+    "social": {
+      "title": "Cloud Social",
+      "desc": "Posts, stories and end-to-end encrypted direct messages."
+    },
+    "wallet": {
+      "title": "Cloud Wallet",
+      "desc": "Crypto wallet: keys stay only with you."
+    },
+    "zapret": {
+      "title": "Unblocking without VPN",
+      "desc": "zapret for all of Windows, shared with Cloud VPN, Cloud Browser and Cloud Zapret."
+    },
+    "apps": {
+      "title": "Apps",
+      "desc": "Cloud VPN for Android and Windows, browsers, extension, messenger, mail, wallet."
+    }
   }
 }

@@ -67,7 +67,23 @@ export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const settings = await invoke<AppSettings>("get_app_settings");
-        const themeValue = settings?.theme ?? "system";
+        let themeValue = settings?.theme ?? "dark";
+        // Фирменная тема Cloud VPN (тёмная): прежнее значение по умолчанию «как в системе» один раз переводим
+        // на неё; выбор, сделанный после этого в настройках, не трогаем.
+        try {
+          const MIGRATED = "chihua-brand-theme-v1";
+          if (!localStorage.getItem(MIGRATED)) {
+            localStorage.setItem(MIGRATED, "1");
+            if (themeValue === "system" && settings) {
+              themeValue = "dark";
+              void invoke("save_app_settings", {
+                settings: { ...settings, theme: "dark" },
+              }).catch(() => undefined);
+            }
+          }
+        } catch {
+          // localStorage недоступен — оставляем как есть
+        }
 
         if (themeValue === "custom") {
           setThemeState("custom");

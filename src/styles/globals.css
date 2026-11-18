@@ -97,30 +97,31 @@
 }
 
 .dark {
-  /* Chihua: фирменная тёмно-зелёная тема Cloud VPN */
-  --background: #08110e;
-  --foreground: #ffffff;
-  --card: #0d1915;
-  --card-foreground: #e4e4e4;
-  --popover: #0d1915;
-  --popover-foreground: #e4e4e4;
-  --primary: #2ee08a;
-  --primary-foreground: #04140c;
-  --secondary: #13221d;
-  --secondary-foreground: #e4e4e4;
-  --muted: #13221d;
-  --muted-foreground: #a0a0a0;
-  --accent: #183026;
+  /* Chihua: фирменная тема Cloud VPN в духе классических JRPG-меню — синие окна, стальная рамка, светлый текст
+     (цвета из общего набора /root/cloudvpn-design, рисунок свой) */
+  --background: #070c26;
+  --foreground: #f2f4fa;
+  --card: #1a2c8a;
+  --card-foreground: #f2f4fa;
+  --popover: #15257a;
+  --popover-foreground: #f2f4fa;
+  --primary: #7fd1ff;
+  --primary-foreground: #0a0f2e;
+  --secondary: #1c2c86;
+  --secondary-foreground: #f2f4fa;
+  --muted: #16236e;
+  --muted-foreground: #a9b6dd;
+  --accent: #2a3f9e;
   --accent-foreground: #ffffff;
-  --destructive: #ec6a5e;
-  --destructive-foreground: #070707;
-  --success: #2ee08a;
-  --success-foreground: #070707;
-  --warning: #f4be4f;
-  --warning-foreground: #070707;
-  --border: rgba(46, 224, 138, 0.12);
-  --input: rgba(46, 224, 138, 0.18);
-  --ring: #2ee08a;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #0a0f2e;
+  --success: #5ef0a0;
+  --success-foreground: #0a0f2e;
+  --warning: #f4c552;
+  --warning-foreground: #0a0f2e;
+  --border: rgba(226, 230, 241, 0.26);
+  --input: rgba(226, 230, 241, 0.34);
+  --ring: #7fd1ff;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -139,6 +140,19 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+}
+
+/* окна: синий градиент сверху вниз и стальная рамка, как в меню классических JRPG */
+.dark .bg-card,
+.dark .bg-popover {
+  background-image: linear-gradient(180deg, #4266c8 0%, #101f6e 100%);
+}
+.dark .bg-card.border,
+.dark .bg-popover.border {
+  border-color: #e2e6f1;
+}
+.dark body {
+  background-image: radial-gradient(120% 90% at 50% 0%, #0d1440, #060a1f 70%);
 }
 
 @layer base {

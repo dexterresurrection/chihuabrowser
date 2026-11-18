@@ -49,6 +49,7 @@ mod synchronizer;
 pub mod traffic_stats;
 mod chihua_manager;
 mod cloudvpn;
+mod services;
 mod zapret;
 // mod theme_detector; // removed: theme detection handled in webview via CSS prefers-color-scheme
 mod cookie_manager;
@@ -2151,6 +2152,13 @@ pub fn run() {
       cloudvpn::cloudvpn_logout,
       zapret::zapret_status,
       zapret::zapret_set,
+      services::service_view_show,
+      services::service_view_bounds,
+      services::service_view_hide,
+      services::service_view_reload,
+      services::services_apps,
+      services::services_open_app,
+      services::services_downloads,
       confirm_quit,
       hide_to_tray,
       update_tray_menu,

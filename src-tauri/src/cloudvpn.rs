@@ -415,3 +415,8 @@ pub async fn cloudvpn_logout() -> Result<(), String> {
   TUNNELS.lock().await.clear();
   Ok(())
 }
+
+/// Токен входа для модулей Chihua (кабинет внутри окна): кабинет сам восстановит по нему вход.
+pub fn session_refresh_token() -> Option<String> {
+  load::<Session>(SESSION_FILE).map(|s| s.refresh_token).filter(|t| !t.is_empty())
+}

@@ -1844,7 +1844,14 @@
     },
     "network": "Сеть",
     "integrations": "Интеграции",
-    "account": "Cloud VPN"
+    "account": "Cloud VPN",
+    "cabinet": "Кабинет",
+    "mail": "Почта",
+    "messenger": "Мессенджер",
+    "social": "Соцсеть",
+    "wallet": "Кошелёк",
+    "zapret": "Zapret",
+    "apps": "Приложения"
   },
   "pageTitle": {
     "proxies": "Сеть",
@@ -1855,7 +1862,14 @@
     "integrations": "Интеграции",
     "account": "Аккаунт",
     "import": "Импорт профиля",
-    "shortcuts": "Сочетания клавиш"
+    "shortcuts": "Сочетания клавиш",
+    "cabinet": "Кабинет",
+    "mail": "Почта",
+    "messenger": "Мессенджер",
+    "social": "Соцсеть",
+    "wallet": "Кошелёк",
+    "zapret": "Обход блокировок",
+    "apps": "Приложения"
   },
   "encryption": {
     "required": {
@@ -2094,5 +2108,47 @@
     "failed": "zapret не переключился",
     "others": "Уже работает другой обход блокировок: {{list}}. Выключите его, чтобы они не мешали друг другу.",
     "antivirus": "Антивирусы иногда ругаются на драйвер WinDivert, которым пользуется zapret, — это ложное срабатывание: файлы взяты из официальных релизов zapret (bol-van) и Flowseal. Не помогла стратегия — выберите другую и нажмите «Сменить стратегию»."
+  },
+  "services": {
+    "loading": "Загрузка",
+    "home": "В начало",
+    "reload": "Обновить",
+    "openInBrowser": "Открыть в браузере системы",
+    "mirror": "РУ Зеркало",
+    "ourServer": "Наш сервер",
+    "version": "версия {{version}}",
+    "install": "Установить",
+    "openApp": "Открыть {{name}}",
+    "installed": "Установлен на этом компьютере",
+    "installedVersion": "Установлена версия {{version}}",
+    "notInstalled": "На этом компьютере программы нет — установите её, и кнопка «Открыть» появится здесь.",
+    "cabinet": {
+      "title": "Кабинет Cloud VPN",
+      "desc": "Подписка, баланс, ключи и все функции сервиса"
+    },
+    "mail": {
+      "title": "Cloud Mail",
+      "desc": "Зашифрованная почта @zjd.uk"
+    },
+    "messenger": {
+      "title": "Cloud Messenger",
+      "desc": "Сообщения и звонки со сквозным шифрованием. Работает и через наши прокси."
+    },
+    "social": {
+      "title": "Cloud Social",
+      "desc": "Посты, истории и личные сообщения со сквозным шифрованием."
+    },
+    "wallet": {
+      "title": "Cloud Wallet",
+      "desc": "Криптокошелёк: ключи хранятся только у вас."
+    },
+    "zapret": {
+      "title": "Обход блокировок без VPN",
+      "desc": "zapret для всего Windows: общий с Cloud VPN, Cloud Browser и Cloud Zapret."
+    },
+    "apps": {
+      "title": "Приложения",
+      "desc": "Cloud VPN для Android и Windows, браузеры, расширение, мессенджер, почта, кошелёк."
+    }
   }
 }

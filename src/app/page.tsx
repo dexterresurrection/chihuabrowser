@@ -36,6 +36,7 @@ import { ProxyAssignmentDialog } from "@/components/proxy-assignment-dialog";
 import { ProxyManagementDialog } from "@/components/proxy-management-dialog";
 import { type AppPage, RailNav } from "@/components/rail-nav";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { isServicePage, ServicesPage } from "@/components/services-page";
 import { ShortcutsPage } from "@/components/shortcuts-page";
 import { SyncAllDialog } from "@/components/sync-all-dialog";
 import { SyncConfigDialog } from "@/components/sync-config-dialog";
@@ -370,6 +371,9 @@ export default function Home() {
         break;
       case "shortcuts":
         // Plain page render — nothing else to open.
+        break;
+      default:
+        // Наши сервисы (кабинет, почта, мессенджер…) — страницы-модули внутри окна
         break;
     }
   }, []);
@@ -1548,6 +1552,8 @@ export default function Home() {
               />
             </div>
           )}
+
+          {isServicePage(currentPage) && <ServicesPage id={currentPage} />}
 
           {currentPage === "shortcuts" && (
             <ShortcutsPage groupTargets={orderedGroupTargets} />

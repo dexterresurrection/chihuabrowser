@@ -71,7 +71,8 @@ pub struct SyncSettings {
 }
 
 fn default_theme() -> String {
-  "system".to_string()
+  // фирменная тема Cloud VPN (тёмная) — по умолчанию
+  "dark".to_string()
 }
 
 fn default_api_port() -> u16 {
@@ -82,7 +83,7 @@ impl Default for AppSettings {
   fn default() -> Self {
     Self {
       set_as_default_browser: false,
-      theme: "system".to_string(),
+      theme: default_theme(),
       custom_theme: None,
       api_enabled: false,
       api_port: 10108,
@@ -1136,8 +1137,8 @@ mod tests {
       "Default should not set as default browser"
     );
     assert_eq!(
-      default_settings.theme, "system",
-      "Default theme should be system"
+      default_settings.theme, "dark",
+      "Default theme should be our dark brand theme"
     );
   }
 
