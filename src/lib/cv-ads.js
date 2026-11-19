@@ -179,9 +179,12 @@
     '.cvad-layer[aria-hidden="true"]{opacity:0;pointer-events:none}' +
     '.cvad-img{width:100%;height:100%;object-fit:cover;display:block}' +
     '.cvad-split .cvad-img{height:50%}.cvad-split .cvad-cap{flex:1;display:flex;align-items:center;padding:0 12px;font-weight:800}' +
-    '.cvad-html{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:8px 14px;min-width:0}' +
-    '.cvad-html b.cvad-t{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.cvad-txt{font-size:13px;opacity:.92;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
+    '.cvad-html{flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:7px 12px;min-width:0;overflow:hidden}' +
+    '.cvad-head{display:flex;align-items:center;gap:8px;min-width:0}' +
+    '.cvad-html b.cvad-t{flex:1;min-width:0;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.cvad-txt{font-size:13px;line-height:17px;opacity:.92;overflow:hidden;display:-webkit-box;-webkit-line-clamp:var(--cvad-lines,2);-webkit-box-orient:vertical}' +
+    '.cvad-cta-in{display:none;flex:none}.cvad--m .cvad-cta-in,.cvad--s .cvad-cta-in{display:inline-block}.cvad--m .cvad-cta-bl,.cvad--s .cvad-cta-bl{display:none}' +
+    '.cvad--s .cvad-txt,.cvad--notxt .cvad-txt,.cvad--nocta .cvad-cta-in{display:none}.cvad--s b.cvad-t{font-size:13px}.cvad--s .cvad-html{padding:4px 10px}' +
     '.cvad-cta{align-self:flex-start;margin-top:2px;padding:4px 12px;border-radius:999px;font-weight:800;font-size:12.5px;background:rgba(255,255,255,.18)}' +
     '.cvad--vice .cvad-cta{background:linear-gradient(90deg,#ff2bd6,#ff7a1a);color:#12062e}' +
     '.cvad--cloud .cvad-cta{background:#2f8cff;color:#fff}' +
@@ -213,7 +216,9 @@
     host.appendChild(box);
     function line() { return o.line === 'vice' || o.line === 'cloud' ? o.line : (isVice() ? 'vice' : 'cloud'); }
     function img(rel) { var u = /^https?:/.test(rel) ? rel : (o.base || BASE) + rel; return o.asset ? o.asset(u) : u; }
-    function paintBox() { box.className = 'cvad cvad--' + p.format + ' cvad--' + line() + (isDay() ? ' cvad--day' : ''); }
+    function paintBox() { box.className = 'cvad cvad--' + p.format + ' cvad--' + line() + (isDay() ? ' cvad--day' : ''); fit(); }
+    var ro = G.ResizeObserver ? new G.ResizeObserver(function () { if (p) fit(); }) : null;
+    if (ro) ro.observe(box);
     function render(a) {
       var l = layers[1 - front];
       l.innerHTML = '';
@@ -234,10 +239,14 @@
       } else if (a.kind === 'html') {
         if (a.bg) l.style.background = a.bg;
         if (a.fg) l.style.color = a.fg;
-        var hbox = el('div', 'cvad-html');
-        if (a.title) { var t = el('b', 'cvad-t', a.title); hbox.appendChild(t); }
+        // раскладка под высоту места (fit): высокое — заголовок, текст, кнопка снизу; среднее — кнопка в строке
+        // заголовка, текст на оставшиеся строки; низкое — только заголовок (и кнопка, если хватает ширины)
+        var hbox = el('div', 'cvad-html'), head = el('div', 'cvad-head');
+        head.appendChild(el('b', 'cvad-t', a.title || a.text || ''));
+        if (a.cta) head.appendChild(el('span', 'cvad-cta cvad-cta-in', a.cta));
+        hbox.appendChild(head);
         var tx = el('div', 'cvad-txt'); tx.innerHTML = safeHtml(a.html || esc(a.text)); hbox.appendChild(tx);
-        if (a.cta) hbox.appendChild(el('span', 'cvad-cta', a.cta));
+        if (a.cta) hbox.appendChild(el('span', 'cvad-cta cvad-cta-bl', a.cta));
         l.appendChild(hbox);
       } else {
         var im = el('img', 'cvad-img'); im.alt = a.title || ''; im.decoding = 'async'; im.referrerPolicy = 'no-referrer';
@@ -263,7 +272,23 @@
       l.setAttribute('aria-hidden', 'false');
       front = 1 - front;
       cur = a;
+      fit();
       armImpression();
+    }
+    /** Подогнать HTML-баннер под высоту и ширину места: ничего не обрезается посередине строки. */
+    function fit() {
+      var r = box.getBoundingClientRect(), h = r.height || (r.width / (p ? FMT[p.format][0] / FMT[p.format][1] : 4)), w = r.width;
+      if (!h) return;
+      var mode = h >= 96 ? 'l' : h >= 58 ? 'm' : 's';
+      var hasCta = !!(cur && cur.cta), inline = mode !== 'l' && hasCta && w >= 200;
+      var head = inline ? 24 : 20, cta = mode === 'l' && hasCta ? 32 : 0;
+      // 336×84 и 312×78: кнопка в строке заголовка + 2 строки текста; 186×93 (side): без кнопки, 3 строки
+      var lines = Math.max(0, Math.floor((h - 14 - head - cta - 3) / 17));
+      box.classList.remove('cvad--l', 'cvad--m', 'cvad--s', 'cvad--notxt', 'cvad--nocta');
+      box.classList.add('cvad--' + mode);
+      if (!lines) box.classList.add('cvad--notxt');
+      if (w && w < 200 && mode !== 'l') box.classList.add('cvad--nocta');
+      box.style.setProperty('--cvad-lines', String(Math.max(1, lines)));
     }
     function armImpression() {
       clearTimeout(impTimer);
@@ -316,7 +341,7 @@
       el: box,
       destroy: function () {
         destroyed = true; clearTimeout(timer); clearTimeout(impTimer);
-        if (io) io.disconnect(); if (mo) mo.disconnect();
+        if (io) io.disconnect(); if (mo) mo.disconnect(); if (ro) ro.disconnect();
         doc.removeEventListener('visibilitychange', onVis);
         if (box.parentNode) box.parentNode.removeChild(box);
         flush(true);
