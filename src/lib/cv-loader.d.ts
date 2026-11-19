@@ -1,4 +1,4 @@
-// Загрузчик «пёс догоняет зайца» из общего набора дизайна (/root/cloudvpn-design/web/cv-loader.js).
+// Загрузчики общего набора дизайна: «пёс догоняет зайца», в темах Vice — маслкар, катер, у Miami — гидроцикл (/root/cloudvpn-design/web/cv-loader.js).
 // Файл ставит globalThis.CvLoaders; подключается динамическим import() только в браузере.
 export interface CvLoaderHandle {
   set(pct: number): unknown;
@@ -10,7 +10,7 @@ export interface CvLoadersApi {
   cvLoader(
     el: HTMLElement,
     opts?: {
-      kind?: "chase" | "eater" | "auto";
+      kind?: "chase" | "eater" | "car" | "boat" | "jetski" | "auto";
       label?: string;
       size?: number;
       compact?: boolean;

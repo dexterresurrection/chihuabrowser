@@ -61,7 +61,7 @@ function rectOf(el: HTMLElement): Bounds {
   return { x: r.left, y: r.top, width: r.width, height: r.height };
 }
 
-/** Пёс догоняет зайца (общий загрузчик набора дизайна): пока модуль не нарисовался поверх. */
+/** Загрузчик набора дизайна (пёс и заяц; у Miami — гидроцикл): пока модуль не нарисовался поверх. */
 function ChaseLoader({ label }: { label: string }) {
   const el = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -71,7 +71,12 @@ function ChaseLoader({ label }: { label: string }) {
       const api = (globalThis as unknown as { CvLoaders?: CvLoadersApi })
         .CvLoaders;
       if (!dead && el.current && api) {
-        handle = api.cvLoader(el.current, { kind: "chase", label });
+        // классика — пёс и заяц; в темах Vice (Miami Browser) загрузчик сам рисует чихуахуа на гидроцикле
+        const vice = document.documentElement.classList.contains("vice");
+        handle = api.cvLoader(el.current, {
+          kind: vice ? "auto" : "chase",
+          label,
+        });
       }
     });
     return () => {

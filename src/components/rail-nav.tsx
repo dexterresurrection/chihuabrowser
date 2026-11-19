@@ -20,6 +20,7 @@ import {
   LuWallet,
   LuZap,
 } from "react-icons/lu";
+import { useLine } from "@/lib/line";
 import { cn } from "@/lib/utils";
 import { Logo } from "./icons/logo";
 import type { ServiceId } from "./services-page";
@@ -297,6 +298,7 @@ const MORE_ITEMS: MoreMenuItem[] = [
 
 export function RailNav({ currentPage, onNavigate }: RailNavProps) {
   const { t } = useTranslation();
+  const line = useLine();
   const [moreOpen, setMoreOpen] = useState(false);
   const {
     logoRef,
@@ -348,7 +350,17 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
                   "animate-[wiggle_0.3s_ease-in-out]",
               )}
             >
-              <Logo className="size-5 will-change-transform" />
+              {line === "vice" ? (
+                // Miami Browser: чихуахуа в очках (набор дизайна, appicon/vice/miami)
+                <img
+                  src="/miami-64.png"
+                  alt=""
+                  className="size-6 rounded-md will-change-transform"
+                  draggable={false}
+                />
+              ) : (
+                <Logo className="size-5 will-change-transform" />
+              )}
             </span>
           </span>
         </button>

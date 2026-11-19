@@ -58,6 +58,8 @@ function applyClassToHtml(theme: string) {
   root.classList.remove("light", "dark", "vice", "vice-night", "vice-day");
   root.classList.add(resolved);
   if (vice) root.classList.add("vice", theme);
+  // загрузчики набора дизайна в темах Vice рисуют у нас чихуахуа на гидроцикле
+  root.dataset.brand = "miami";
   // линия (Chihua ↔ Miami Browser) идёт за темой: имена в полосе слева, заголовок окна
   window.dispatchEvent(
     new CustomEvent("chihua-line", { detail: vice ? "vice" : "cloud" }),

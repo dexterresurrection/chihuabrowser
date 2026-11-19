@@ -60,14 +60,39 @@ pub fn get_brand() -> BrandInfo {
 pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
   use tauri::Manager;
   let name = name_of(&line);
+  let miami = line == "vice";
   if let Some(w) = app.get_webview_window("main") {
     w.set_title(name).map_err(|e| e.to_string())?;
+    // значок окна (панель задач): Miami — чихуахуа в очках, иначе — значок программы
+    let icon = if miami {
+      tauri::image::Image::from_bytes(MIAMI_ICON).ok()
+    } else {
+      app.default_window_icon().cloned()
+    };
+    if let Some(icon) = icon {
+      let _ = w.set_icon(icon);
+    }
   }
   if let Some(t) = app.tray_by_id("main") {
     let _ = t.set_tooltip(Some(name));
+    if miami {
+      if let Ok(icon) = tauri::image::Image::from_bytes(MIAMI_TRAY) {
+        let _ = t.set_icon(Some(icon));
+      }
+    } else if let Ok(img) = image::load_from_memory(TRAY_ICON) {
+      let rgba = img.into_rgba8();
+      let (w, h) = rgba.dimensions();
+      let _ = t.set_icon(Some(tauri::image::Image::new_owned(rgba.into_raw(), w, h)));
+    }
   }
   Ok(())
 }
+
+/// Значки линии Miami (набор дизайна Cloud VPN, appicon/vice/miami — свой рисунок).
+const MIAMI_ICON: &[u8] = include_bytes!("../windows/miami/miami-256.png");
+const MIAMI_TRAY: &[u8] = include_bytes!("../windows/miami/miami-32.png");
+/// Значок в трее линии Chihua (тот же, что при запуске).
+const TRAY_ICON: &[u8] = include_bytes!("../icons/tray-icon-linux-44.png");
 
 #[cfg(test)]
 mod tests {
