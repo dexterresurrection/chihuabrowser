@@ -196,16 +196,16 @@
   var PALM_SC = [1, 0.8, 1.12, 0.9];
   var VICE = {
     night: {
-      sky: ['#1B0A3E', '#3A0F66', '#7A1E7E', '#E8457E', '#FF8A3D'], skyAt: [0, 0.3, 0.58, 0.82, 1],
-      sun: ['#FFE27A', '#FFB347', '#FF6A5C', '#FF3EA5'], sea: ['#4A1673', '#1B0B3A'], horizon: '#2EF2E0',
-      road: '#1D0E3B', curb: '#3A1468', lane: '#FFD45E', trail: '#FF3EA5', trail2: '#2EF2E0', palm: '#16062E',
-      signBg: '#140A33', signEdge: '#FF3EA5', signText: '#FFF4FB', signGlow: '#FF3EA5', edge: '#FF3EA5', text: '#FFF4FB'
+      sky: ['#07041C', '#1E0B55', '#5A137F', '#FF2BD6', '#FF7A1A'], skyAt: [0, 0.3, 0.6, 0.84, 1],
+      sun: ['#FFF06A', '#FFB13D', '#FF5A5A', '#FF2BD6'], sea: ['#3A0F7A', '#0B0626'], horizon: '#00E5FF',
+      road: '#140A3D', curb: '#2A0F5A', lane: '#FFC83D', trail: '#FF2BD6', trail2: '#00E5FF', palm: '#0A0420',
+      signBg: '#0C0628', signEdge: '#FF2BD6', signText: '#FFFFFF', signGlow: '#FF2BD6', edge: '#FF2BD6', text: '#FFFFFF'
     },
     day: {
-      sky: ['#7FD3EE', '#B9E6F2', '#FFE3D1', '#FFC0A0', '#FFB37A'], skyAt: [0, 0.3, 0.58, 0.82, 1],
-      sun: ['#FFF2B0', '#FFD45E', '#FFA36B', '#FF7FA8'], sea: ['#3CC9C0', '#1E8F9A'], horizon: '#FFFFFF',
-      road: '#5B5470', curb: '#F2D2B6', lane: '#FFFFFF', trail: '#E8327F', trail2: '#11A6A0', palm: '#1E5F66',
-      signBg: '#2B1740', signEdge: '#E8327F', signText: '#FFFFFF', signGlow: '#FF6FB5', edge: '#11A6A0', text: '#2B1740'
+      sky: ['#0FB4FF', '#2CC6FF', '#7FE3FF', '#C9F5FF', '#F0FDFF'], skyAt: [0, 0.3, 0.6, 0.85, 1],
+      sun: ['#FFFFFF', '#FFF7C2', '#FFE36E', '#FFC83D'], sea: ['#00D0CC', '#0090B8'], horizon: '#FFFFFF',
+      road: '#5E6B80', curb: '#FFF4E2', lane: '#FFFFFF', trail: '#FF2E93', trail2: '#00B8C8', palm: '#0F8F45',
+      signBg: '#0B1F4A', signEdge: '#FF2E93', signText: '#FFFFFF', signGlow: '#FF6FB0', edge: '#00B8C8', text: '#0B1F4A'
     }
   };
 
@@ -341,9 +341,28 @@
     return art([[far, 0], [body, 1.8], [det, 0]], a ? -0.7 : 0);
   }
 
+  // Вертолёт с прожектором: летит над героем, конус света падает вперёд на дорогу. Начало — центр корпуса.
+  function heli(frame) {
+    var a = frame === 0, col = '#1A1040';
+    var far = [P(a ? 'M4.6 3L13 36L31 36Z' : 'M4.6 3L10 36L28 36Z', a ? '#FFF6B03A' : '#FFF6B030')];
+    var body = [
+      R(-14.5, -1, 9.5, 1.7, 0.8, col), P('M-14.5 -0.9L-16 -4.8L-12.6 -0.9Z', col),
+      E(0, 0, 6.2, 3.5, col)
+    ];
+    var det = [
+      P('M1.6 -2.8Q5.8 -2.6 6.2 0.2L1.6 0.2Z', '#7FE3FF'),
+      Ln('M-4 4.8L5.4 4.8', col, 0.9, true), Ln('M-2 3L-3 4.8', col, 0.7, true), Ln('M3 3L4 4.8', col, 0.7, true),
+      Ln('M0 -3.3L0 -4.8', col, 0.8, true),
+      Ln(a ? 'M-12 -4.8L12 -4.8' : 'M-5 -4.8L5 -4.8', '#D6E0FF', 0.8, true),
+      C(4.8, 2.6, 0.9, '#FFF6B0'),
+      C(-1.4, -3.4, 0.7, a ? '#FF1E3C' : '#2E6BFF')
+    ];
+    return art([[far, 0], [body, 1.2], [det, 0]], 0);
+  }
+
   var VICE_KINDS = { car: 1, boat: 1, jetski: 1 };
   var VICE_ART = {
-    car: [car(0), car(1)], police: [police(0), police(1)], boat: [boat(0), boat(1)], jetski: [jetski(0), jetski(1)],
+    car: [car(0), car(1)], police: [police(0), police(1)], heli: [heli(0), heli(1)], boat: [boat(0), boat(1)], jetski: [jetski(0), jetski(1)],
     palmNight: palmArt(VICE.night.palm), palmDay: palmArt(VICE.day.palm),
     sparklePink: sparkleArt('#FF6FB5'), sparkleTeal: sparkleArt('#2EF2E0'), sparkleYellow: sparkleArt('#FFD45E'), heart: heartArt()
   };
@@ -393,7 +412,10 @@
       if (kind === 'jetski') items.push({ art: A.heart, x: hx - 14 * u, y: lineY - (30 + 3 * k) * u, s: u * (0.6 + 0.5 * k) });
     }
     var pctv = p == null ? null : Math.max(0, Math.min(100, Math.round(p * 100)));
+    // вертолёт держится чуть позади героя и светит вперёд, на него
+    var heliX = Math.max(x0 + 14 * u, hx - 18 * u), heliY = (8 + (reduce ? 0 : Math.sin(t / 420) * 0.8)) * u;
     return {
+      heli: { art: A.heli[step], x: heliX, y: heliY, s: u },
       u: u, x0: x0, x1: x1, W: W, H: H, lineY: lineY, water: water, hy: VG.HY * u, curb: VG.CURB * u, laneY: VG.LANE_Y * u,
       sunX: x0 + L * 0.62, sunR: VG.SUN_R * u, palms: palms, laneOff: laneOff, period: period,
       trailFrom: trailFrom, trailTo: trailTo, items: items, percent: pctv,
@@ -924,6 +946,7 @@
       clip.appendChild(outer);
       return { outer: outer, lift: lift, far: far, main: main, art: null };
     }
+    var heliC = creature();
     var cops = kind === 'car' ? creature() : null;
     var hero = creature();
     clip.appendChild(gFx);
@@ -1034,6 +1057,8 @@
         if (signNodes.txt !== s.sign.text) { signNodes.text.textContent = signNodes.glow.textContent = signNodes.txt = s.sign.text; }
         signNodes.box.setAttribute('fill', s.sign.flash ? P0.signEdge : P0.signBg);
       }
+      setArt(heliC, s.heli.art);
+      heliC.outer.setAttribute('transform', 'translate(' + r2(s.heli.x) + ',' + r2(s.heli.y) + ') scale(' + r2(u * 1000) / 1000 + ')');
       var heroItem = s.items[kind === 'car' ? 1 : 0];
       if (cops) {
         var pi = s.items[0];
@@ -1110,6 +1135,7 @@
         '<text x="' + r2(cx) + '" y="' + ty + '" text-anchor="middle" font-family="Unbounded, Arial Black, sans-serif" font-weight="800" font-size="' + fs + '" fill="none" stroke="' + P0.signGlow + '" stroke-width="' + r2(2.4 * u) + '" opacity=".45">' + sg.text + '</text>' +
         '<text x="' + r2(cx) + '" y="' + ty + '" text-anchor="middle" font-family="Unbounded, Arial Black, sans-serif" font-weight="800" font-size="' + fs + '" fill="' + P0.signText + '">' + sg.text + '</text>';
     }
+    o += '<g transform="translate(' + r2(s.heli.x) + ',' + r2(s.heli.y) + ') scale(' + r2(u * 1000) / 1000 + ')">' + s.heli.art.far + s.heli.art.main + '</g>';
     for (var k = 0; k < s.items.length; k++) {
       var it = s.items[k];
       if (it.s <= 0) continue;
