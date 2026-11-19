@@ -176,6 +176,9 @@ jobs:
           [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size)
           $bmp.Save("$PWD\screen.png")
           Stop-Process -Id $p.Id -Force
+      - name: Cloud VPN modules open inside the window, minimize and restore
+        shell: pwsh
+        run: ./scripts/windows-modules-check.ps1
       - name: Engine applies its switches on Windows
         shell: pwsh
         run: |
@@ -237,6 +240,8 @@ jobs:
         if: always()
         with:
           name: windows-screen
-          path: screen.png
+          path: |
+            screen.png
+            results/
           if-no-files-found: warn
           retention-days: 14
