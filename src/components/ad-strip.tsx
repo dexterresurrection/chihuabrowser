@@ -29,5 +29,6 @@ export function AdStrip() {
       handle?.destroy();
     };
   }, []);
-  return <div ref={el} className="shrink-0 px-3 pb-2 pt-1 max-w-4xl w-full mx-auto" hidden />;
+  // 4:1 во всю ширину окна (880×500 по умолчанию) — ~200 px, почти половина окна; ширина до 448 px — ~112 px
+  return <div ref={el} className="shrink-0 px-3 pb-2 pt-1 max-w-md w-full mx-auto" hidden />;
 }
