@@ -41,11 +41,27 @@ function resolveSystemTheme(): "light" | "dark" {
     : "light";
 }
 
+// Vice-темы (линия Miami Browser): своя палитра поверх светлой или тёмной основы (globals.css)
+const VICE_BASE: Record<string, "light" | "dark"> = {
+  "vice-night": "dark",
+  "vice-day": "light",
+};
+
+export function isViceTheme(theme: string | null | undefined): boolean {
+  return !!theme && theme in VICE_BASE;
+}
+
 function applyClassToHtml(theme: string) {
-  const resolved = theme === "system" ? resolveSystemTheme() : theme;
+  const vice = VICE_BASE[theme];
+  const resolved = vice ?? (theme === "system" ? resolveSystemTheme() : theme);
   const root = document.documentElement;
-  root.classList.remove("light", "dark");
+  root.classList.remove("light", "dark", "vice", "vice-night", "vice-day");
   root.classList.add(resolved);
+  if (vice) root.classList.add("vice", theme);
+  // линия (Chihua ↔ Miami Browser) идёт за темой: имена в полосе слева, заголовок окна
+  window.dispatchEvent(
+    new CustomEvent("chihua-line", { detail: vice ? "vice" : "cloud" }),
+  );
 }
 
 export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
@@ -61,6 +77,18 @@ export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
     }
   }, []);
 
+  // Линия (Chihua ↔ Miami Browser) идёт за темой: заголовок окна и подсказка значка в трее
+  useEffect(() => {
+    const onLine = (e: Event) => {
+      const line = (e as CustomEvent<string>).detail === "vice" ? "vice" : "cloud";
+      void import("@tauri-apps/api/core")
+        .then(({ invoke }) => invoke("apply_line", { line }))
+        .catch(() => undefined);
+    };
+    window.addEventListener("chihua-line", onLine);
+    return () => window.removeEventListener("chihua-line", onLine);
+  }, []);
+
   // Load initial theme from Tauri settings
   useEffect(() => {
     const loadTheme = async () => {
@@ -68,6 +96,31 @@ export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
         const { invoke } = await import("@tauri-apps/api/core");
         const settings = await invoke<AppSettings>("get_app_settings");
         let themeValue = settings?.theme ?? "dark";
+        // Тема установки: Miami-установщик кладёт рядом с программой brand.json с линией vice. Один раз для
+        // каждой линии ставим её тему по умолчанию; выбор, сделанный после этого в настройках, не трогаем.
+        try {
+          const brand = await invoke<{ line: string; theme: string }>(
+            "get_brand",
+          );
+          const key = `chihua-brand-default-${brand.line}`;
+          if (settings && brand.line && !localStorage.getItem(key)) {
+            localStorage.setItem(key, "1");
+            const want =
+              brand.line === "vice"
+                ? brand.theme || "vice-night"
+                : isViceTheme(themeValue)
+                  ? "dark"
+                  : themeValue;
+            if (want !== themeValue) {
+              themeValue = want;
+              void invoke("save_app_settings", {
+                settings: { ...settings, theme: want },
+              }).catch(() => undefined);
+            }
+          }
+        } catch {
+          // старая сборка без get_brand
+        }
         // Фирменная тема Cloud VPN (тёмная): прежнее значение по умолчанию «как в системе» один раз переводим
         // на неё; выбор, сделанный после этого в настройках, не трогаем.
         try {
@@ -101,7 +154,8 @@ export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
         } else if (
           themeValue === "light" ||
           themeValue === "dark" ||
-          themeValue === "system"
+          themeValue === "system" ||
+          isViceTheme(themeValue)
         ) {
           setThemeState(themeValue);
           applyClassToHtml(themeValue);

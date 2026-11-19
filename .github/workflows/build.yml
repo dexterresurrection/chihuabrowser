@@ -137,10 +137,23 @@ jobs:
           cargo build --bin chihua-proxy --target x86_64-pc-windows-msvc --release
           cp target/x86_64-pc-windows-msvc/release/chihua-proxy.exe binaries/chihua-proxy-x86_64-pc-windows-msvc.exe
       - run: pnpm exec tauri build --target x86_64-pc-windows-msvc --bundles nsis --no-sign
+      # Miami Browser: the same binaries, its own installer name, icon, pictures and default theme
+      # (src-tauri/windows/miami: the uninstall key, folder, exe and AppUserModelID stay Chihua's)
+      - name: Miami Browser installer
+        shell: bash
+        run: |
+          set -e
+          B=src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis
+          mkdir -p dist
+          mv "$B"/*.exe dist/
+          pnpm exec tauri bundle --target x86_64-pc-windows-msvc --bundles nsis --config src-tauri/windows/miami/tauri.miami.json
+          for f in "$B"/*.exe; do mv "$f" "dist/$(basename "$f" | sed 's/^Chihua/Miami_Browser/')"; done
+          ls -la dist
+          test -n "$(ls dist/Miami_Browser_*.exe)"
       - uses: actions/upload-artifact@v4
         with:
           name: chihua-browser-windows-x64
-          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+          path: dist/*.exe
           if-no-files-found: error
           retention-days: 14
 
@@ -156,7 +169,7 @@ jobs:
       - name: Install silently and start the app
         shell: pwsh
         run: |
-          $setup = Get-ChildItem installer -Filter *.exe | Select-Object -First 1
+          $setup = Get-ChildItem installer -Filter 'Chihua*.exe' | Select-Object -First 1
           Start-Process $setup.FullName -ArgumentList '/S' -Wait
           $exe = Get-ChildItem "$env:LOCALAPPDATA","$env:ProgramFiles" -Recurse -Filter 'chihuabrowser.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { $exe = Get-ChildItem "$env:LOCALAPPDATA","$env:ProgramFiles" -Recurse -Include 'Chihua*.exe' -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'uninstall|proxy|tunnel' } | Select-Object -First 1 }
@@ -236,6 +249,9 @@ jobs:
           if ($s.status.installed -or $s.status.running) { throw 'the service is still there after stop' }
           if (Get-Process winws -ErrorAction SilentlyContinue) { throw 'winws is still running after stop' }
           Write-Host 'zapret: on, strategy switch, off - all good'
+      - name: Miami Browser over Chihua - same program, own name, icon and theme
+        shell: pwsh
+        run: ./scripts/windows-miami-check.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

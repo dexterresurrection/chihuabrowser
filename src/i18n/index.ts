@@ -71,10 +71,37 @@ const resources = {
   vi: { translation: vi },
 };
 
+// Линия Miami Browser (Vice-темы): названия продуктов во всех строках по-Vice. Тексты переводов не дублируем —
+// подменяем имена на выходе. Линию ставит theme-provider (класс vice на <html>, событие chihua-line).
+const VICE_NAMES: [RegExp, string][] = [
+  [/Chihua Browser/g, "Miami Browser"],
+  [/Cloud VPN/g, "Vice VPN"],
+  [/Cloud Browser/g, "Vice Browser"],
+  [/Cloud Mail/g, "Vice Mail"],
+  [/Cloud Messenger/g, "Vice Messenger"],
+  [/Cloud Social/g, "Vice Club"],
+  [/Cloud Wallet/g, "Vice Wallet"],
+  [/Cloud Zapret/g, "Vice Zapret"],
+];
+let viceLine =
+  typeof document !== "undefined" &&
+  document.documentElement.classList.contains("vice");
+
+export function viceNames(text: string): string {
+  return VICE_NAMES.reduce((s, [re, name]) => s.replace(re, name), text);
+}
+
+i18n.use({
+  type: "postProcessor",
+  name: "line",
+  process: (value: string) => (viceLine ? viceNames(value) : value),
+});
+
 i18n.use(initReactI18next).init({
   resources,
   lng: "en",
   fallbackLng: "en",
+  postProcess: ["line"],
   interpolation: {
     escapeValue: false,
   },
@@ -82,5 +109,15 @@ i18n.use(initReactI18next).init({
     useSuspense: false,
   },
 });
+
+if (typeof window !== "undefined") {
+  window.addEventListener("chihua-line", (e) => {
+    const vice = (e as CustomEvent<string>).detail === "vice";
+    if (vice === viceLine) return;
+    viceLine = vice;
+    // react-i18next перерисовывает подписчиков на смену языка — так же и на смену линии
+    i18n.emit("languageChanged", i18n.language);
+  });
+}
 
 export default i18n;

@@ -120,7 +120,9 @@
       "yourOwn": "Собственная",
       "light": "Светлая",
       "dark": "Тёмная",
-      "system": "Системная"
+      "system": "Системная",
+      "viceNight": "Vice · ночь",
+      "viceDay": "Vice · день"
     },
     "language": {
       "title": "Язык",

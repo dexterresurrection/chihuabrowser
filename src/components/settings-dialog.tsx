@@ -684,6 +684,12 @@ export function SettingsDialog({
                     <SelectItem value="system">
                       {t("settings.appearance.system")}
                     </SelectItem>
+                    <SelectItem value="vice-night">
+                      {t("settings.appearance.viceNight")}
+                    </SelectItem>
+                    <SelectItem value="vice-day">
+                      {t("settings.appearance.viceDay")}
+                    </SelectItem>
                     <SelectItem value="custom">
                       {t("common.labels.custom")}
                     </SelectItem>

@@ -120,7 +120,9 @@
       "yourOwn": "自定义",
       "light": "浅色",
       "dark": "深色",
-      "system": "跟随系统"
+      "system": "跟随系统",
+      "viceNight": "Vice · Night",
+      "viceDay": "Vice · Day"
     },
     "language": {
       "title": "语言",

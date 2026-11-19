@@ -155,6 +155,103 @@
   background-image: radial-gradient(120% 90% at 50% 0%, #0d1440, #060a1f 70%);
 }
 
+/* Vice · ночь (линия Miami Browser): ночной залив, неон, закат у горизонта. Рисунок и цвета свои. */
+html.dark.vice-night {
+  --background: #0d0621;
+  --foreground: #fff3fb;
+  --card: #2a1150;
+  --card-foreground: #fff3fb;
+  --popover: #24104a;
+  --popover-foreground: #fff3fb;
+  --primary: #ff4fa3;
+  --primary-foreground: #ffffff;
+  --secondary: #2b0f55;
+  --secondary-foreground: #fff3fb;
+  --muted: #1e0a3c;
+  --muted-foreground: #d3b4e8;
+  --accent: #3d1a63;
+  --accent-foreground: #ffffff;
+  --destructive: #ff5d7e;
+  --destructive-foreground: #0d0621;
+  --success: #59ffb4;
+  --success-foreground: #0d0621;
+  --warning: #ffb000;
+  --warning-foreground: #0d0621;
+  --border: rgba(255, 79, 163, 0.35);
+  --input: rgba(255, 79, 163, 0.45);
+  --ring: #35f0f0;
+  --sidebar: #170a33;
+  --sidebar-foreground: #fff3fb;
+  --sidebar-primary: #ff4fa3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #3d1a63;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 79, 163, 0.3);
+  --sidebar-ring: #35f0f0;
+}
+html.dark.vice-night .bg-card,
+html.dark.vice-night .bg-popover {
+  background-image: linear-gradient(180deg, #3a1665 0%, #170a33 100%);
+}
+html.dark.vice-night .bg-card.border,
+html.dark.vice-night .bg-popover.border {
+  border-color: #ff4fa3;
+  box-shadow: 0 0 14px rgba(255, 79, 163, 0.25);
+}
+html.dark.vice-night body {
+  background-image:
+    radial-gradient(90% 55% at 50% 108%, rgba(255, 122, 89, 0.8), rgba(194, 48, 122, 0.4) 40%, transparent 72%),
+    linear-gradient(180deg, #0d0621 0%, #1e0a3c 55%, #4a1258 100%);
+  background-attachment: fixed;
+}
+
+/* Vice · день: небо над пляжем, розовый и бирюзовый. */
+html.vice-day {
+  --background: #fff6fb;
+  --foreground: #2b1238;
+  --card: #ffffff;
+  --card-foreground: #2b1238;
+  --popover: #ffffff;
+  --popover-foreground: #2b1238;
+  --primary: #ff5fa8;
+  --primary-foreground: #ffffff;
+  --secondary: #ffe6f2;
+  --secondary-foreground: #2b1238;
+  --muted: #ffe6f2;
+  --muted-foreground: #6e4a7e;
+  --accent: #ffd9ec;
+  --accent-foreground: #2b1238;
+  --destructive: #d7264d;
+  --destructive-foreground: #ffffff;
+  --success: #0e8f52;
+  --success-foreground: #ffffff;
+  --warning: #ff7a00;
+  --warning-foreground: #ffffff;
+  --border: #f7c6dd;
+  --input: #f3a6cb;
+  --ring: #00899b;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2b1238;
+  --sidebar-primary: #ff5fa8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffe6f2;
+  --sidebar-accent-foreground: #2b1238;
+  --sidebar-border: #f7c6dd;
+  --sidebar-ring: #00899b;
+}
+html.vice-day .bg-card,
+html.vice-day .bg-popover {
+  background-image: linear-gradient(180deg, #ffffff 0%, #ffe6f2 100%);
+}
+html.vice-day .bg-card.border,
+html.vice-day .bg-popover.border {
+  border-color: #ff5fa8;
+}
+html.vice-day body {
+  background-image: linear-gradient(180deg, #8fe3ff 0%, #cff1ff 38%, #ffd7ec 72%, #ffb896 100%);
+  background-attachment: fixed;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

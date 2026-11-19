@@ -120,7 +120,9 @@
       "yourOwn": "カスタム",
       "light": "ライト",
       "dark": "ダーク",
-      "system": "システム"
+      "system": "システム",
+      "viceNight": "Vice · Night",
+      "viceDay": "Vice · Day"
     },
     "language": {
       "title": "言語",

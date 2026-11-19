@@ -120,7 +120,9 @@
       "yourOwn": "직접 설정",
       "light": "라이트",
       "dark": "다크",
-      "system": "시스템"
+      "system": "시스템",
+      "viceNight": "Vice · Night",
+      "viceDay": "Vice · Day"
     },
     "language": {
       "title": "언어",

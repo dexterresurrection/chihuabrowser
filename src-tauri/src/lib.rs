@@ -50,6 +50,7 @@ pub mod traffic_stats;
 mod chihua_manager;
 mod cloudvpn;
 mod services;
+mod brand;
 mod zapret;
 // mod theme_detector; // removed: theme detection handled in webview via CSS prefers-color-scheme
 mod cookie_manager;
@@ -1285,7 +1286,7 @@ fn setup_system_tray(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
   TrayIconBuilder::with_id("main")
     .icon(tray_image)
     .icon_as_template(cfg!(target_os = "macos"))
-    .tooltip("Chihua Browser")
+    .tooltip(brand::name_of(&brand::read().line))
     .menu(&tray_menu)
     .show_menu_on_left_click(false)
     .on_menu_event(|app_handle, event| match event.id().as_ref() {
@@ -1415,7 +1416,7 @@ pub fn run() {
       // Create the main window programmatically
       #[allow(unused_variables)]
       let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-        .title("Chihua Browser")
+        .title(brand::name_of(&brand::read().line))
         .inner_size(880.0, 500.0)
         .min_inner_size(640.0, 400.0)
         .resizable(true)
@@ -2157,6 +2158,8 @@ pub fn run() {
       services::service_view_hide,
       services::service_view_reload,
       services::services_apps,
+      brand::get_brand,
+      brand::apply_line,
       services::services_open_app,
       services::services_downloads,
       confirm_quit,

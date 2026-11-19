@@ -1,0 +1,13 @@
+{
+  "bundle": {
+    "windows": {
+      "nsis": {
+        "template": "windows/miami/installer.nsi",
+        "installerHooks": "windows/miami/hooks.nsh",
+        "installerIcon": "windows/miami/miami.ico",
+        "headerImage": "windows/miami/header.bmp",
+        "sidebarImage": "windows/miami/sidebar.bmp"
+      }
+    }
+  }
+}

@@ -585,6 +585,14 @@ impl AppAutoUpdater {
 
   #[cfg(target_os = "windows")]
   fn get_windows_download_url(&self, assets: &[AppReleaseAsset], arch: &str) -> Option<String> {
+    // Miami Browser and Chihua are one program with two installers: update with the installer of the installed line
+    let miami = crate::brand::read().line == "vice";
+    let assets: Vec<AppReleaseAsset> = assets
+      .iter()
+      .filter(|a| a.name.starts_with("Miami") == miami)
+      .cloned()
+      .collect();
+    let assets = assets.as_slice();
     // Priority order: MSI > EXE > ZIP
     let extensions = ["msi", "exe", "zip"];
 
