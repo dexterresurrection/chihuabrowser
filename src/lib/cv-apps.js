@@ -14,6 +14,8 @@
  * Ссылки — три источника, как в боте: GitHub, РУ Зеркало (бакет), наш сервер. На Android внутри WebView (inWebView: true)
  * ссылка идёт через https://cabinet.zjd.uk/app/get.html?u=…, чтобы APK скачался во внешнем браузере.
  * open(url) — как открыть ссылку (WebView2: системный браузер через свой мост); по умолчанию — новое окно.
+ * sources: ['/api/apps/downloads.json'] — свои адреса downloads.json вместо наших (строгий CSP, своя сеть через прокси);
+ * asset: (url) => url — через неё проходят все адреса картинок (например, '/api/apps/img?u=' + encodeURIComponent(url)).
  * Линия 'auto': класс vice / vice-night / vice-day (или data-theme="vice-…") на <html> → vice, иначе cloud.
  */
 (function () {
@@ -22,7 +24,8 @@
   if (G.CvApps) return;
   var doc = G.document;
 
-  // Chihua: только адрес кабинета (запасной адрес бакета из браузера всё равно не работает — нет CORS; выручает кэш)
+  // Только наш сервер: у запасного адреса в бакете нет CORS, из браузера и WebView он не читается (запасной путь есть
+  // в Kotlin-версии, CvAppsData.kt). Свои адреса — опцией sources. Без адресов бакета файл годится и для публичных репозиториев.
   var SOURCES = ['https://cabinet.zjd.uk/app/downloads.json'];
   var BASE = 'https://cabinet.zjd.uk/app/';
   var GET = 'https://cabinet.zjd.uk/app/get.html';
@@ -83,14 +86,16 @@
     try { G.localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data: data })); } catch (e) { /* */ }
   }
   var inflight = null;
-  function load(force) {
+  function load(force, o) {
+    var srcs = (o && o.sources && o.sources.length) ? o.sources : SOURCES;
+    if (typeof force === 'object' && force) { srcs = force.sources && force.sources.length ? force.sources : SOURCES; force = !!force.force; }
     var c = readCache();
     if (!force && c && Date.now() - c.t < DAY) return Promise.resolve(c.data);
     if (inflight) return inflight;
     var i = 0;
     function next() {
-      if (i >= SOURCES.length) return Promise.reject(new Error('no source'));
-      var url = SOURCES[i++];
+      if (i >= srcs.length) return Promise.reject(new Error('no source'));
+      var url = srcs[i++];
       var ctl = G.AbortController ? new G.AbortController() : null;
       var timer = ctl ? setTimeout(function () { ctl.abort(); }, 9000) : 0;
       // cvSilent: общая полоса загрузки (cv-loader.js) не дёргается из-за фонового запроса
@@ -135,10 +140,12 @@
       var vice = !!isVice[key];
       out.push({ key: key, title: String(p.title || key).replace(/^[^\wА-Яа-яЁё]+\s*/u, ''), emoji: (String(p.title || '').match(/^\S+/) || [''])[0],
         version: p.version || '', files: files, vice: vice,
-        icon: vice ? BASE + 'vice/' + (ICON_VICE[key] || key) + '-256.png' : BASE + (ICON_CLOUD[key] || 'cloudvpn-icon.png') });
+        icon: asset(o, vice ? BASE + 'vice/' + (ICON_VICE[key] || key) + '-256.png' : BASE + (ICON_CLOUD[key] || 'cloudvpn-icon.png')) });
     });
     return out;
   }
+
+  function asset(o, url) { return o && typeof o.asset === 'function' ? o.asset(url) : url; }
 
   function linkFor(url, name, o) {
     if (o.inWebView && /\.apk$/i.test(name || '')) return GET + '?u=' + encodeURIComponent(url) + '&n=' + encodeURIComponent(name || '');
@@ -240,7 +247,7 @@
     }
     function render(data) {
       body.innerHTML = '';
-      var items = list(data, { line: line, platform: o.platform, current: o.current });
+      var items = list(data, { line: line, platform: o.platform, current: o.current, asset: o.asset });
       if (!items.length) { body.appendChild(el('div', 'cva-note', t.empty)); return; }
       items.forEach(function (it) {
         var row = el('div', 'cva-item'), mid = el('div'), btn = el('button', 'cva-dl', t.download);
@@ -270,7 +277,7 @@
       });
     }
     body.appendChild(el('div', 'cva-note', t.loading));
-    load().then(render, function () { body.innerHTML = ''; body.appendChild(el('div', 'cva-note', t.fail)); });
+    load(false, o).then(render, function () { body.innerHTML = ''; body.appendChild(el('div', 'cva-note', t.fail)); });
     setTimeout(function () { try { x.focus(); } catch (e) { /* */ } }, 30);
     openSheet = { close: close };
     return openSheet;
@@ -290,7 +297,7 @@
       var st = el('span', 'cva-stack');
       var icons = line === 'vice' ? ['miami', 'vice-vpn', 'vice-wallet'].map(function (k) { return BASE + 'vice/' + k + '-64.png'; })
         : ['cloudvpn-icon-64.png', 'messenger/icon.png', 'wallet/icon.png'].map(function (k) { return BASE + k; });
-      icons.forEach(function (u) { var i = el('img'); i.alt = ''; i.src = u; i.onerror = function () { i.style.visibility = 'hidden'; }; st.appendChild(i); });
+      icons.forEach(function (u) { var i = el('img'); i.alt = ''; i.src = asset(o, u); i.onerror = function () { i.style.visibility = 'hidden'; }; st.appendChild(i); });
       var txt = el('span');
       txt.appendChild(el('b', '', line === 'vice' ? t.vice : t.cloud));
       txt.appendChild(el('small', '', t.sub));
@@ -308,7 +315,7 @@
       mo = new G.MutationObserver(paint);
       mo.observe(doc.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
     }
-    load().catch(function () { /* прогрев кэша */ });
+    load(false, o).catch(function () { /* прогрев кэша */ });
     return { el: b, repaint: paint, destroy: function () { if (mo) mo.disconnect(); if (b.parentNode) b.parentNode.removeChild(b); } };
   }
 

@@ -25,6 +25,7 @@ import { ImportProfileDialog } from "@/components/import-profile-dialog";
 import { IntegrationsDialog } from "@/components/integrations-dialog";
 import { ONBOARDING_TOUR } from "@/components/onboarding-provider";
 import { PermissionDialog } from "@/components/permission-dialog";
+import { AdStrip } from "@/components/ad-strip";
 import { ProfilesDataTable } from "@/components/profile-data-table";
 import {
   type PasswordDialogMode,
@@ -1646,6 +1647,7 @@ export default function Home() {
               subPage={currentPage === "account"}
             />
           )}
+          <AdStrip />
         </main>
       </div>
 
