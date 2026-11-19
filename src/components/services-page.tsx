@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { LuExternalLink, LuHouse, LuRefreshCw } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { ZapretCard } from "@/components/zapret-card";
+import type { CvAppsApi } from "@/lib/cv-apps";
 import type { CvLoaderHandle, CvLoadersApi } from "@/lib/cv-loader";
 
 /** Модули наших сервисов в левом меню Chihua: всё открывается внутри окна. */
@@ -85,6 +86,33 @@ function ChaseLoader({ label }: { label: string }) {
     };
   }, [label]);
   return <div ref={el} className="w-full max-w-md mx-auto pt-16 px-6" />;
+}
+
+/** Все наши приложения — общая плашка набора дизайна («Наши приложения» / «Vice apps» по теме), ссылки — в браузер системы. */
+function AppsPlate() {
+  const { i18n } = useTranslation();
+  const el = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let dead = false;
+    void import("@/lib/cv-apps").then(() => {
+      const api = (globalThis as unknown as { CvApps?: CvAppsApi }).CvApps;
+      if (!dead && el.current && api) {
+        api.plate(el.current, {
+          line: "auto",
+          platform: "windows",
+          current: ["chihua", "miami"],
+          open: (url) => {
+            void openUrl(url);
+          },
+          lang: i18n.language === "ru" ? "ru" : "en",
+        });
+      }
+    });
+    return () => {
+      dead = true;
+    };
+  }, [i18n.language]);
+  return <div ref={el} />;
 }
 
 /** Веб-модуль: дочерний WebView точно над этим блоком; уходим со страницы — модуль прячется, но живёт. */
@@ -313,13 +341,14 @@ function AppModule({ id }: { id: ServiceId }) {
         {note && <div className="text-xs text-destructive">{note}</div>}
       </div>
       {id === "zapret" && <ZapretCard />}
-      {id !== "zapret" && (
+      {id === "apps" && <AppsPlate />}
+      {id !== "zapret" && id !== "apps" && (
       <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
         <div className="text-sm font-semibold">{t("services.install")}</div>
         {error && <div className="text-xs text-destructive">{error}</div>}
         {!products && !error && <ChaseLoader label={t("services.loading")} />}
         {products &&
-          (id === "apps" ? Object.keys(products) : (svc.products ?? []))
+          (svc.products ?? [])
             .filter((k) => products[k])
             .map((k) => <ProductCard key={k} product={products[k]} />)}
       </div>
