@@ -41,7 +41,7 @@ function resolveSystemTheme(): "light" | "dark" {
     : "light";
 }
 
-// Vice-темы (линия Miami Browser): своя палитра поверх светлой или тёмной основы (globals.css)
+// Vice-темы (линия Vice Antidetect): своя палитра поверх светлой или тёмной основы (globals.css)
 const VICE_BASE: Record<string, "light" | "dark"> = {
   "vice-night": "dark",
   "vice-day": "light",
@@ -58,9 +58,9 @@ function applyClassToHtml(theme: string) {
   root.classList.remove("light", "dark", "vice", "vice-night", "vice-day");
   root.classList.add(resolved);
   if (vice) root.classList.add("vice", theme);
-  // загрузчики набора дизайна в темах Vice рисуют у нас чихуахуа на гидроцикле
-  root.dataset.brand = "miami";
-  // линия (Chihua ↔ Miami Browser) идёт за темой: имена в полосе слева, заголовок окна
+  // загрузчики набора дизайна в темах Vice — маслкар и катер; чихуахуа (на гидроцикле) — талисман Chihua, не Vice-линии
+  delete root.dataset.brand;
+  // линия (Chihua ↔ Vice Antidetect) идёт за темой: имена в полосе слева, заголовок окна
   window.dispatchEvent(
     new CustomEvent("chihua-line", { detail: vice ? "vice" : "cloud" }),
   );
@@ -79,7 +79,7 @@ export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
     }
   }, []);
 
-  // Линия (Chihua ↔ Miami Browser) идёт за темой: заголовок окна и подсказка значка в трее
+  // Линия (Chihua ↔ Vice Antidetect) идёт за темой: заголовок окна и подсказка значка в трее
   useEffect(() => {
     const onLine = (e: Event) => {
       const line = (e as CustomEvent<string>).detail === "vice" ? "vice" : "cloud";
@@ -98,7 +98,7 @@ export function CustomThemeProvider({ children }: CustomThemeProviderProps) {
         const { invoke } = await import("@tauri-apps/api/core");
         const settings = await invoke<AppSettings>("get_app_settings");
         let themeValue = settings?.theme ?? "dark";
-        // Тема установки: Miami-установщик кладёт рядом с программой brand.json с линией vice. Один раз для
+        // Тема установки: установщик Vice Antidetect кладёт рядом с программой brand.json с линией vice. Один раз для
         // каждой линии ставим её тему по умолчанию; выбор, сделанный после этого в настройках, не трогаем.
         try {
           const brand = await invoke<{ line: string; theme: string }>(

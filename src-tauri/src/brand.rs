@@ -1,7 +1,8 @@
-//! Линия установки: Chihua Browser или Miami Browser (Vice). Программа одна; Miami-установщик кладёт рядом с
-//! программой brand.json — {"v":1,"brand":"vice","name":"Miami Browser","theme":"vice-night"} (общий формат
-//! установщиков CloudVPN). Это тема по умолчанию; потом линия идёт за темой, которую человек выбрал в настройках:
-//! Vice-темы — Miami Browser, остальные — Chihua Browser (заголовок окна, подсказка значка в трее).
+//! Линия установки: Chihua Browser или Vice Antidetect (Vice; продукт miami, прежнее имя — Miami Browser).
+//! Программа одна; установщик Vice Antidetect кладёт рядом с программой brand.json —
+//! {"v":1,"brand":"vice","name":"Vice Antidetect","theme":"vice-night"} (общий формат установщиков CloudVPN).
+//! Это тема по умолчанию; потом линия идёт за темой, которую человек выбрал в настройках:
+//! Vice-темы — Vice Antidetect, остальные — Chihua Browser (заголовок окна, значок окна и трея).
 
 use serde::Serialize;
 
@@ -14,7 +15,7 @@ pub struct BrandInfo {
 
 pub fn name_of(line: &str) -> &'static str {
   if line == "vice" {
-    "Miami Browser"
+    "Vice Antidetect"
   } else {
     "Chihua Browser"
   }
@@ -63,7 +64,7 @@ pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
   let miami = line == "vice";
   if let Some(w) = app.get_webview_window("main") {
     w.set_title(name).map_err(|e| e.to_string())?;
-    // значок окна (панель задач): Miami — чихуахуа в очках, иначе — значок программы
+    // значок окна (панель задач): Vice Antidetect — малый значок хамелеона, иначе — значок программы
     let icon = if miami {
       tauri::image::Image::from_bytes(MIAMI_ICON).ok()
     } else {
@@ -88,8 +89,9 @@ pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
   Ok(())
 }
 
-/// Значки линии Miami (набор дизайна Cloud VPN, appicon/vice/miami — свой рисунок).
-const MIAMI_ICON: &[u8] = include_bytes!("../windows/miami/miami-256.png");
+/// Значки линии Vice Antidetect (набор дизайна Cloud VPN, appicon/vice/miami — рисунок владельца). Окну — малый
+/// вариант (до 96 px: голова, «VICE», знак сервиса): на панели задач он читается лучше полного рисунка.
+const MIAMI_ICON: &[u8] = include_bytes!("../windows/miami/miami-96.png");
 const MIAMI_TRAY: &[u8] = include_bytes!("../windows/miami/miami-32.png");
 /// Значок в трее линии Chihua (тот же, что при запуске).
 const TRAY_ICON: &[u8] = include_bytes!("../icons/tray-icon-linux-44.png");
@@ -100,7 +102,7 @@ mod tests {
 
   #[test]
   fn names() {
-    assert_eq!(name_of("vice"), "Miami Browser");
+    assert_eq!(name_of("vice"), "Vice Antidetect");
     assert_eq!(name_of("cloud"), "Chihua Browser");
     // рядом с тестовым exe brand.json нет — линия Chihua
     assert_eq!(read().line, "cloud");

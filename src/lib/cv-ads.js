@@ -3,7 +3,9 @@
  *
  *   CvAds.plate(el, { slot: 'cabinet.home', line: 'auto'|'vice'|'cloud', platform: 'auto'|'android'|'windows'|'web',
  *                     open: url => …, sources: [...], base: 'https://cabinet.zjd.uk/app/ads/', asset: url => url,
- *                     send: body => Promise<boolean>, clickVia: 'auto'|'counter'|'direct' })  → { destroy() }
+ *                     send: body => Promise<boolean>, clickVia: 'auto'|'counter'|'direct', look: 'auto'|'vice'|'ff7'|'plain' })
+ *                                                                                                     → { destroy() }
+ *   line — какие баннеры показывать (линия Vice или Cloud); look — оформление, по умолчанию по теме хоста (ниже).
  *   base — от чего считать пути картинок (по умолчанию наш сервер, а не адрес, откуда пришёл ads.json);
  *   send — своя отправка показов (тело — JSON-строка); clickVia: 'counter' — всегда click?s=слот (программа сама решит,
  *   что открыть), 'direct' — всегда url.
@@ -21,7 +23,11 @@
  * - Форматы мест: wide 4:1, side 2:1, strip 6:1 (image_strip; иначе image слева на 2/3 и title справа).
  * - Нажатие — open(url) (по умолчанию новое окно): click + '?s=' + слот, если ads.json пришёл с сервера сейчас;
  *   url, если показан кэш (клик тогда считается в пакете как clk).
- * - Маркировка: mark.label → метка «Реклама» в углу; advertiser / erid → строка «Реклама · … · erid: …» внутри плашки.
+ * - Маркировка: mark.label → метка «Реклама» (у HTML — в строке заголовка); advertiser / erid → строка «Реклама · … ·
+ *   erid: …» полосой под текстом (тогда отдельной метки нет).
+ * - Оформление по теме хоста (классы или data-theme на <html>): vice / vice-night / vice-day → Vice; ff7 («Классика RPG»)
+ *   → синее окно; dark / light (обычные темы) → нейтральное, цвета из переменных хоста --cvp-bg, --cvp-fg, --cvp-edge,
+ *   --cvp-accent, --cvp-on-accent (без них — простой тёмный или светлый). Нет классов темы — как раньше, по линии.
  */
 (function () {
   'use strict';
@@ -78,7 +84,20 @@
     var r = doc.documentElement, th = r.getAttribute('data-theme') || '';
     return r.classList.contains('vice') || r.classList.contains('vice-night') || r.classList.contains('vice-day') || th.indexOf('vice') === 0;
   }
-  function isDay() { var r = doc.documentElement; return r.classList.contains('vice-day') || r.classList.contains('light'); }
+  function isDay() {
+    var r = doc.documentElement, th = r.getAttribute('data-theme') || '';
+    return r.classList.contains('vice-day') || r.classList.contains('light') || th === 'light' || th === 'vice-day';
+  }
+  /** Оформление по теме хоста: Vice — только при темах Vice, ff7 — только при «Классике RPG», обычные тёмная/светлая —
+   *  нейтральное. o.look задаёт явно. Без классов темы — по линии (vice → Vice, cloud → ff7), как было. */
+  function lookOf(o, line) {
+    if (o.look === 'vice' || o.look === 'ff7' || o.look === 'plain') return o.look;
+    var r = doc.documentElement, c = r.classList, th = r.getAttribute('data-theme') || '';
+    if (c.contains('vice') || c.contains('vice-night') || c.contains('vice-day') || th.indexOf('vice') === 0) return 'vice';
+    if (c.contains('ff7') || th === 'ff7') return 'ff7';
+    if (c.contains('dark') || c.contains('light') || th === 'dark' || th === 'light') return 'plain';
+    return line === 'vice' ? 'vice' : 'ff7';
+  }
   function platformOf(o) {
     if (o.platform && o.platform !== 'auto') return o.platform;
     if (doc.documentElement.classList.contains('native-app')) return 'android';
@@ -169,27 +188,39 @@
   var CSS = '' +
     '.cvad{position:relative;width:100%;overflow:hidden;border-radius:14px;user-select:none;-webkit-user-select:none;font:600 14px/1.3 var(--cvad-font,system-ui,-apple-system,Segoe UI,Roboto,sans-serif)}' +
     '.cvad--wide{aspect-ratio:4/1}.cvad--side{aspect-ratio:2/1}.cvad--strip{aspect-ratio:6/1;border-radius:10px}' +
-    '.cvad-row{flex-direction:row!important;align-items:center}.cvad-row .cvad-img{width:66.7%;height:100%;flex:none}.cvad-row .cvad-cap{flex:1;padding:0 10px;font-weight:800;font-size:13px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
+    '.cvad-rowin{flex:1 1 0;min-height:0;display:flex;align-items:center;overflow:hidden}.cvad-rowin .cvad-img{width:66.7%;height:100%;flex:none}.cvad-rowin .cvad-cap{flex:1;padding:0 10px;font-weight:800;font-size:13px;overflow:hidden;display:-webkit-box;line-height:17px;-webkit-line-clamp:var(--cvad-cap-lines,2);-webkit-box-orient:vertical}' +
     '.cvad-line{flex:1;display:flex;align-items:center;gap:10px;padding:0 12px;min-width:0}.cvad-line b{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}' +
-    '.cvad--cloud{background:linear-gradient(180deg,#24409e,#14247a);box-shadow:0 0 0 1px #21253c,inset 0 0 0 2px #bcc2d6;color:#f2f4fa}' +
-    '.cvad--cloud.cvad--day{background:#fff;color:#0b1f4a;box-shadow:0 0 0 1px rgba(0,0,0,.12)}' +
+    '.cvad--ff7{background:linear-gradient(180deg,#24409e,#14247a);box-shadow:0 0 0 1px #21253c,inset 0 0 0 2px #bcc2d6;color:#f2f4fa}' +
+    '.cvad--plain{background:var(--cvp-bg,#1a1f2b);color:var(--cvp-fg,#eef1f8);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(255,255,255,.12))}' +
+    '.cvad--plain.cvad--day{background:var(--cvp-bg,#fff);color:var(--cvp-fg,#14213d);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(0,0,0,.12))}' +
     '.cvad--vice{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,0) 40%),linear-gradient(180deg,#22105c,#0c0628);color:#fff6fd;box-shadow:inset 0 0 0 1px rgba(0,229,255,.8),0 0 0 2px #ff2bd6,0 0 16px rgba(255,43,214,.35)}' +
     '.cvad--vice.cvad--day{background:#fff;color:#0b1f4a;box-shadow:inset 0 0 0 1px rgba(255,46,147,.55),0 0 0 2px #18c4ff}' +
     '.cvad-layer{position:absolute;inset:0;display:flex;flex-direction:column;cursor:pointer;transition:opacity .3s ease}' +
     '.cvad-layer[aria-hidden="true"]{opacity:0;pointer-events:none}' +
-    '.cvad-img{width:100%;height:100%;object-fit:cover;display:block}' +
-    '.cvad-split .cvad-img{height:50%}.cvad-split .cvad-cap{flex:1;display:flex;align-items:center;padding:0 12px;font-weight:800}' +
+    '.cvad-img{width:100%;height:100%;object-fit:cover;display:block}.cvad-fill{flex:1 1 0;min-height:0;height:auto}' +
+    '.cvad-cap .cvad-label-in{display:inline-block;margin-right:5px;vertical-align:1px;font-size:10px}' +
+    // side без image_side: подпись берёт свои 1–2 строки, картинка — остаток места (строка маркировки ничего не закрывает)
+    '.cvad-split .cvad-img{height:auto;flex:1 1 0;min-height:0}.cvad-split .cvad-cap{flex:none;display:flex;align-items:center;min-height:min(50%,44px);padding:3px 12px;box-sizing:border-box;font-weight:800}' +
+    '.cvad-capt{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;-webkit-line-clamp:2}' +
     '.cvad-html{flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:7px 12px;min-width:0;overflow:hidden}' +
     '.cvad-head{display:flex;align-items:center;gap:8px;min-width:0}' +
     '.cvad-html b.cvad-t{flex:1;min-width:0;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.cvad-txt{font-size:13px;line-height:17px;opacity:.92;overflow:hidden;display:-webkit-box;-webkit-line-clamp:var(--cvad-lines,2);-webkit-box-orient:vertical}' +
     '.cvad-cta-in{display:none;flex:none}.cvad--m .cvad-cta-in,.cvad--s .cvad-cta-in{display:inline-block}.cvad--m .cvad-cta-bl,.cvad--s .cvad-cta-bl{display:none}' +
-    '.cvad--s .cvad-txt,.cvad--notxt .cvad-txt,.cvad--nocta .cvad-cta-in{display:none}.cvad--s b.cvad-t{font-size:13px}.cvad--s .cvad-html{padding:4px 10px}' +
+    '.cvad--s .cvad-txt,.cvad--notxt .cvad-txt,.cvad--nocta .cvad-cta-in{display:none}.cvad--s b.cvad-t{font-size:13px}.cvad--s .cvad-html{padding:3px 10px}' +
     '.cvad-cta{align-self:flex-start;margin-top:2px;padding:4px 12px;border-radius:999px;font-weight:800;font-size:12.5px;background:rgba(255,255,255,.18)}' +
     '.cvad--vice .cvad-cta{background:linear-gradient(90deg,#ff2bd6,#ff7a1a);color:#12062e}' +
-    '.cvad--cloud .cvad-cta{background:#2f8cff;color:#fff}' +
+    '.cvad--ff7 .cvad-cta{background:#2f8cff;color:#fff}' +
+    '.cvad--plain .cvad-cta{background:var(--cvp-accent,#2f8cff);color:var(--cvp-on-accent,#fff)}' +
     '.cvad-label{position:absolute;top:6px;right:8px;z-index:2;padding:1px 6px;border-radius:5px;font-size:10.5px;font-weight:700;background:rgba(0,0,0,.45);color:#fff;pointer-events:none}' +
-    '.cvad-legal{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:2px 8px;font-size:10px;line-height:1.3;color:#fff;background:rgba(0,0,0,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}' +
+    '.cvad-legal{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:2px 8px;font-size:10px;line-height:1.3;color:#fff;background:rgba(0,0,0,.5);display:flex;white-space:nowrap;overflow:hidden;pointer-events:none}' +
+    // строка маркировки: «Реклама» и «erid: …» не сжимаются (erid обязан быть виден), многоточием режется только
+    // рекламодатель; не помещается и он — скрывается (fitLegal)
+    '.cvad-legal span{flex:none}.cvad-legal .cvad-adv{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}.cvad-legal .cvad-adv.cvad-off{display:none}.cvad-legal.cvad-wrap{flex-wrap:wrap}' +
+    // у HTML-баннеров метка «Реклама» стоит в строке заголовка, а строка рекламодателя — полосой под текстом,
+    // чтобы ничего не закрывать; у картинок — поверх, как раньше
+    '.cvad-label-in,.cvad-legal-in{position:static;flex:none}.cvad-label-in{align-self:center}' +
+    '.cvad-line .cvad-cta,.cvad-head .cvad-cta{align-self:center;margin-top:0}' +
     '@media (prefers-reduced-motion:reduce){.cvad-layer{transition:none}}';
   function css() {
     if (doc.getElementById('cvad-css')) return;
@@ -203,20 +234,44 @@
   }
   function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
+  /** Строка маркировки: «Реклама» · рекламодатель (сжимается) · «erid: …» (не сжимается). */
+  function fillLegal(node, m) {
+    node.textContent = '';
+    node.setAttribute('aria-label', [m.label || 'Реклама', m.advertiser, m.erid ? 'erid: ' + m.erid : ''].filter(Boolean).join(' · '));
+    node.appendChild(el('span', '', m.label || 'Реклама'));
+    if (m.advertiser) node.appendChild(el('span', 'cvad-adv', '\u00a0· ' + m.advertiser));
+    if (m.erid) node.appendChild(el('span', '', '\u00a0· erid: ' + m.erid));
+    return node;
+  }
+  /** Рекламодатель обрезан до 32 px и меньше — не показывать совсем (останется «Реклама · erid: …»); не помещается
+   *  и «Реклама · erid: …» — erid переносится на вторую строку (виден целиком). */
+  function fitLegal(root) {
+    var lgs = root.querySelectorAll('.cvad-legal');
+    for (var i = 0; i < lgs.length; i++) {
+      var lg = lgs[i], a = lg.querySelector('.cvad-adv'), last = lg.lastChild;
+      lg.classList.remove('cvad-wrap');
+      if (a) {
+        a.classList.remove('cvad-off');
+        if (a.offsetParent !== null && a.scrollWidth > a.clientWidth + 1 && a.clientWidth < 32) a.classList.add('cvad-off');
+      }
+      if (last && last.getBoundingClientRect().right > lg.getBoundingClientRect().right - 7.5) lg.classList.add('cvad-wrap');
+    }
+  }
+
   function plate(host, o) {
     o = o || {};
     css();
     var slot = o.slot, destroyed = false, timer = 0, impTimer = 0, visible = false, p = null, feed = null, cur = null;
     var box = el('div', 'cvad'), layers = [el('div', 'cvad-layer'), el('div', 'cvad-layer')], front = 0;
     layers.forEach(function (l) { l.setAttribute('aria-hidden', 'true'); box.appendChild(l); });
-    var label = el('span', 'cvad-label'), legal = el('div', 'cvad-legal');
-    box.appendChild(label); box.appendChild(legal);
+    var label = el('span', 'cvad-label');
+    box.appendChild(label);
     host.hidden = true;
     if (o.replace !== false) host.innerHTML = '';
     host.appendChild(box);
     function line() { return o.line === 'vice' || o.line === 'cloud' ? o.line : (isVice() ? 'vice' : 'cloud'); }
     function img(rel) { var u = /^https?:/.test(rel) ? rel : (o.base || BASE) + rel; return o.asset ? o.asset(u) : u; }
-    function paintBox() { box.className = 'cvad cvad--' + p.format + ' cvad--' + line() + (isDay() ? ' cvad--day' : ''); fit(); }
+    function paintBox() { box.className = 'cvad cvad--' + p.format + ' cvad--' + lookOf(o, line()) + (isDay() ? ' cvad--day' : ''); fit(); }
     var ro = G.ResizeObserver ? new G.ResizeObserver(function () { if (p) fit(); }) : null;
     if (ro) ro.observe(box);
     function render(a) {
@@ -225,17 +280,28 @@
       l.className = 'cvad-layer';
       l.style.background = ''; l.style.color = '';
       var side = p.format === 'side', strip = p.format === 'strip';
+      var m = a.mark || {}, inflow = a.kind === 'html', rowCap = false;
+      // есть строка маркировки (рекламодатель или erid) — она уже начинается с «Реклама», отдельную метку не рисуем
+      var hasLegal = !!(m.advertiser || m.erid), showLabel = !!m.label && !hasLegal;
+      function labelIn(row) { if (showLabel) row.appendChild(el('span', 'cvad-label cvad-label-in', m.label)); }
       if (a.kind === 'html' && strip) {
         if (a.bg) l.style.background = a.bg;
         if (a.fg) l.style.color = a.fg;
         var ln = el('div', 'cvad-line');
         ln.appendChild(el('b', '', a.title || a.text || ''));
         if (a.cta) ln.appendChild(el('span', 'cvad-cta', a.cta));
+        labelIn(ln);
         l.appendChild(ln);
       } else if (a.kind === 'image' && strip) {
         var si = el('img', 'cvad-img'); si.alt = a.title || ''; si.decoding = 'async'; si.referrerPolicy = 'no-referrer';
-        if (a.image_strip) { si.src = img(a.image_strip); l.appendChild(si); }
-        else { l.classList.add('cvad-row'); si.src = img(a.image); l.appendChild(si); l.appendChild(el('div', 'cvad-cap', a.title || '')); }
+        if (a.image_strip) { si.src = img(a.image_strip); si.classList.add('cvad-fill'); l.appendChild(si); }
+        else {
+          // картинка слева на 2/3, справа подпись; метка «Реклама» — перед подписью, а не поверх неё
+          var rw = el('div', 'cvad-rowin'), cap = el('div', 'cvad-cap');
+          si.src = img(a.image); rw.appendChild(si);
+          labelIn(cap); cap.appendChild(doc.createTextNode(a.title || ''));
+          rw.appendChild(cap); l.appendChild(rw); rowCap = true;
+        }
       } else if (a.kind === 'html') {
         if (a.bg) l.style.background = a.bg;
         if (a.fg) l.style.color = a.fg;
@@ -244,6 +310,7 @@
         var hbox = el('div', 'cvad-html'), head = el('div', 'cvad-head');
         head.appendChild(el('b', 'cvad-t', a.title || a.text || ''));
         if (a.cta) head.appendChild(el('span', 'cvad-cta cvad-cta-in', a.cta));
+        labelIn(head);
         hbox.appendChild(head);
         var tx = el('div', 'cvad-txt'); tx.innerHTML = safeHtml(a.html || esc(a.text)); hbox.appendChild(tx);
         if (a.cta) hbox.appendChild(el('span', 'cvad-cta cvad-cta-bl', a.cta));
@@ -253,21 +320,20 @@
         if (side && a.image_side) im.src = img(a.image_side);
         else {
           im.src = img(a.image);
-          if (side) { l.classList.add('cvad-split'); l.appendChild(im); l.appendChild(el('div', 'cvad-cap', a.title || '')); im = null; }
+          if (side) {
+            l.classList.add('cvad-split'); l.appendChild(im);
+            var sc = el('div', 'cvad-cap'); sc.appendChild(el('span', 'cvad-capt', a.title || '')); l.appendChild(sc); im = null;
+          }
         }
-        if (im) l.appendChild(im);
+        if (im) { im.classList.add('cvad-fill'); l.appendChild(im); }
       }
+      // строка маркировки — всегда отдельной полосой снизу: не закрывает ни текст, ни картинку
+      if (hasLegal) l.appendChild(fillLegal(el('div', 'cvad-legal cvad-legal-in'), m));
       l.setAttribute('role', 'link');
       l.setAttribute('aria-label', a.title || a.text || '');
       l.tabIndex = 0;
-      var m = a.mark || {};
       label.textContent = m.label || '';
-      label.style.display = m.label ? '' : 'none';
-      var lg = [m.label || 'Реклама'];
-      if (m.advertiser) lg.push(m.advertiser);
-      if (m.erid) lg.push('erid: ' + m.erid);
-      legal.textContent = lg.join(' · ');
-      legal.style.display = (m.advertiser || m.erid) ? '' : 'none';
+      label.style.display = showLabel && !inflow && !rowCap ? '' : 'none';
       layers[front].setAttribute('aria-hidden', 'true');
       l.setAttribute('aria-hidden', 'false');
       front = 1 - front;
@@ -278,16 +344,24 @@
     /** Подогнать HTML-баннер под высоту и ширину места: ничего не обрезается посередине строки. */
     function fit() {
       var r = box.getBoundingClientRect(), h = r.height || (r.width / (p ? FMT[p.format][0] / FMT[p.format][1] : 4)), w = r.width;
+      fitLegal(box);
       if (!h) return;
+      // подпись к картинке в полосе (strip без image_strip): столько строк, сколько помещается над строкой маркировки
+      var capBox = layers[front].querySelector('.cvad-rowin');
+      if (capBox) box.style.setProperty('--cvad-cap-lines', String(Math.max(1, Math.floor(capBox.clientHeight / 17))));
+      var lgIn = layers[front].querySelector('.cvad-legal-in');
+      if (lgIn) h -= lgIn.offsetHeight || 17;
+      // метка «Реклама» в строке заголовка занимает ~60 px — кнопке в строке нужно на столько же больше ширины
+      var cm = (cur && cur.mark) || {}, labW = cm.label && !cm.advertiser && !cm.erid ? 60 : 0;
       var mode = h >= 96 ? 'l' : h >= 58 ? 'm' : 's';
-      var hasCta = !!(cur && cur.cta), inline = mode !== 'l' && hasCta && w >= 200;
+      var hasCta = !!(cur && cur.cta), inline = mode !== 'l' && hasCta && w - labW >= 200;
       var head = inline ? 24 : 20, cta = mode === 'l' && hasCta ? 32 : 0;
       // 336×84 и 312×78: кнопка в строке заголовка + 2 строки текста; 186×93 (side): без кнопки, 3 строки
       var lines = Math.max(0, Math.floor((h - 14 - head - cta - 3) / 17));
       box.classList.remove('cvad--l', 'cvad--m', 'cvad--s', 'cvad--notxt', 'cvad--nocta');
       box.classList.add('cvad--' + mode);
       if (!lines) box.classList.add('cvad--notxt');
-      if (w && w < 200 && mode !== 'l') box.classList.add('cvad--nocta');
+      if (w && w - labW < 200 && mode !== 'l') box.classList.add('cvad--nocta');
       box.style.setProperty('--cvad-lines', String(Math.max(1, lines)));
     }
     function armImpression() {

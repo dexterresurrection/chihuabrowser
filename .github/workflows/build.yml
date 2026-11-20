@@ -137,9 +137,9 @@ jobs:
           cargo build --bin chihua-proxy --target x86_64-pc-windows-msvc --release
           cp target/x86_64-pc-windows-msvc/release/chihua-proxy.exe binaries/chihua-proxy-x86_64-pc-windows-msvc.exe
       - run: pnpm exec tauri build --target x86_64-pc-windows-msvc --bundles nsis --no-sign
-      # Miami Browser: the same binaries, its own installer name, icon, pictures and default theme
-      # (src-tauri/windows/miami: the uninstall key, folder, exe and AppUserModelID stay Chihua's)
-      - name: Miami Browser installer
+      # Vice Antidetect (product miami, ex Miami Browser): the same binaries, its own installer name, icon, pictures
+      # and default theme (src-tauri/windows/miami: the uninstall key, folder, exe and AppUserModelID stay Chihua's)
+      - name: Vice Antidetect installer
         shell: bash
         run: |
           set -e
@@ -147,9 +147,9 @@ jobs:
           mkdir -p dist
           mv "$B"/*.exe dist/
           pnpm exec tauri bundle --target x86_64-pc-windows-msvc --bundles nsis --config src-tauri/windows/miami/tauri.miami.json
-          for f in "$B"/*.exe; do mv "$f" "dist/$(basename "$f" | sed 's/^Chihua/Miami_Browser/')"; done
+          for f in "$B"/*.exe; do mv "$f" "dist/$(basename "$f" | sed 's/^Chihua/Vice_Antidetect/')"; done
           ls -la dist
-          test -n "$(ls dist/Miami_Browser_*.exe)"
+          test -n "$(ls dist/Vice_Antidetect_*.exe)"
       - uses: actions/upload-artifact@v4
         with:
           name: chihua-browser-windows-x64
@@ -249,9 +249,9 @@ jobs:
           if ($s.status.installed -or $s.status.running) { throw 'the service is still there after stop' }
           if (Get-Process winws -ErrorAction SilentlyContinue) { throw 'winws is still running after stop' }
           Write-Host 'zapret: on, strategy switch, off - all good'
-      - name: Miami Browser over Chihua - same program, own name, icon and theme
+      - name: Vice Antidetect over Chihua - same program, own name, icon and theme
         shell: pwsh
-        run: ./scripts/windows-miami-check.ps1
+        run: ./scripts/windows-antidetect-check.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1,4 +1,4 @@
-// Линия Chihua / Miami Browser: идёт за темой (theme-provider ставит класс vice на <html> и шлёт chihua-line).
+// Линия Chihua / Vice Antidetect: идёт за темой (theme-provider ставит класс vice на <html> и шлёт chihua-line).
 import { useEffect, useState } from "react";
 
 export type Line = "cloud" | "vice";

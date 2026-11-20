@@ -351,7 +351,7 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
               )}
             >
               {line === "vice" ? (
-                // Miami Browser: чихуахуа в очках (набор дизайна, appicon/vice/miami)
+                // Vice Antidetect: хамелеон с отпечатком пальца (набор дизайна, appicon/vice/miami)
                 <img
                   src="/miami-64.png"
                   alt=""

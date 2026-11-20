@@ -17,6 +17,9 @@
  * sources: ['/api/apps/downloads.json'] — свои адреса downloads.json вместо наших (строгий CSP, своя сеть через прокси);
  * asset: (url) => url — через неё проходят все адреса картинок (например, '/api/apps/img?u=' + encodeURIComponent(url)).
  * Линия 'auto': класс vice / vice-night / vice-day (или data-theme="vice-…") на <html> → vice, иначе cloud.
+ * Оформление (look: 'auto'|'vice'|'ff7'|'plain') — по теме хоста, а не по линии: темы Vice → Vice, ff7 («Классика RPG»)
+ * → синее окно, обычные dark / light → нейтральное (переменные хоста --cvp-bg, --cvp-surface, --cvp-fg, --cvp-edge,
+ * --cvp-accent, --cvp-on-accent; без них — простой тёмный или светлый). Нет классов темы на <html> — по линии, как было.
  */
 (function () {
   'use strict';
@@ -69,6 +72,24 @@
     var th = r.getAttribute('data-theme') || '';
     return r.classList.contains('vice') || r.classList.contains('vice-night') || r.classList.contains('vice-day') || th.indexOf('vice') === 0;
   }
+  function isDayTheme() {
+    var r = doc && doc.documentElement;
+    if (!r) return false;
+    var th = r.getAttribute('data-theme') || '';
+    return r.classList.contains('vice-day') || r.classList.contains('light') || th === 'light' || th === 'vice-day';
+  }
+  /** Vice — только при темах Vice, ff7 — только при «Классике RPG», обычные тёмная/светлая — нейтральное. */
+  function lookOf(o, line) {
+    if (o.look === 'vice' || o.look === 'ff7' || o.look === 'plain') return o.look;
+    var r = doc && doc.documentElement;
+    if (!r) return line === 'vice' ? 'vice' : 'ff7';
+    var c = r.classList, th = r.getAttribute('data-theme') || '';
+    if (c.contains('vice') || c.contains('vice-night') || c.contains('vice-day') || th.indexOf('vice') === 0) return 'vice';
+    if (c.contains('ff7') || th === 'ff7') return 'ff7';
+    if (c.contains('dark') || c.contains('light') || th === 'dark' || th === 'light') return 'plain';
+    return line === 'vice' ? 'vice' : 'ff7';
+  }
+  function lookCls(o, line) { var k = lookOf(o, line); return 'cva--' + k + (k === 'plain' && isDayTheme() ? ' cva--day' : ''); }
   function lineOf(o) { return o.line === 'vice' || o.line === 'cloud' ? o.line : (isViceTheme() ? 'vice' : 'cloud'); }
   function platformOf(o) {
     if (o.platform && o.platform !== 'auto') return o.platform;
@@ -160,14 +181,14 @@
     '.cva-plate b{display:block;font-size:17px}.cva-plate small{display:block;opacity:.8;font-weight:600;font-size:12.5px;margin-top:2px}.cva-plate .cva-go{margin-left:auto;font-size:22px;opacity:.9}' +
     '.cva--vice.cva-plate{color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,0) 45%),linear-gradient(90deg,#2a0b6a,#4a0f7a 55%,#2a0b6a);box-shadow:inset 0 0 0 1px rgba(0,229,255,.85),0 0 0 2px #ff2bd6,0 0 18px rgba(255,43,214,.45),0 0 40px rgba(138,43,255,.3)}' +
     '.cva--vice.cva-plate b{font-family:var(--cva-display,inherit);letter-spacing:.02em;text-shadow:0 0 6px #ff2bd6,0 0 16px rgba(255,43,214,.7)}' +
-    '.cva--cloud.cva-plate{color:#eef3ff;background:linear-gradient(180deg,#24409e,#14247a);box-shadow:0 0 0 1px #21253c,inset 0 0 0 2px #bcc2d6,0 6px 16px rgba(0,0,20,.35)}' +
+    '.cva--ff7.cva-plate{color:#eef3ff;background:linear-gradient(180deg,#24409e,#14247a);box-shadow:0 0 0 1px #21253c,inset 0 0 0 2px #bcc2d6,0 6px 16px rgba(0,0,20,.35)}' +
     '.cva-plate:hover{filter:brightness(1.08)}.cva-plate:focus-visible{outline:3px solid #00e5ff;outline-offset:2px}' +
     '.cva-back{position:fixed;inset:0;z-index:2147483200;background:rgba(3,0,16,.62);display:flex;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
     '@media (min-width:640px){.cva-back{align-items:center}}' +
     '.cva-sheet{width:min(560px,100%);max-height:min(86vh,760px);display:flex;flex-direction:column;border-radius:20px 20px 0 0;overflow:hidden;font:600 15px/1.35 var(--cva-font,system-ui,-apple-system,Segoe UI,Roboto,sans-serif)}' +
     '@media (min-width:640px){.cva-sheet{border-radius:20px}}' +
     '.cva--vice.cva-sheet{color:#fff6fd;background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,0) 18%),linear-gradient(180deg,#22105c,#0c0628);box-shadow:inset 0 0 0 1px rgba(0,229,255,.8),0 0 0 2px #ff2bd6,0 0 30px rgba(255,43,214,.45)}' +
-    '.cva--cloud.cva-sheet{color:#eef3ff;background:linear-gradient(180deg,#1b2f86,#0b1550);box-shadow:inset 0 0 0 3px #bcc2d6,0 0 0 1px #21253c}' +
+    '.cva--ff7.cva-sheet{color:#eef3ff;background:linear-gradient(180deg,#1b2f86,#0b1550);box-shadow:inset 0 0 0 3px #bcc2d6,0 0 0 1px #21253c}' +
     '.cva-head{display:flex;align-items:center;gap:10px;padding:16px 16px 10px}.cva-head h2{margin:0;font-size:20px;flex:1}' +
     '.cva--vice .cva-head h2{font-family:var(--cva-display,inherit);text-shadow:0 0 8px #ff2bd6,0 0 22px rgba(255,43,214,.6)}' +
     '.cva-x{border:0;background:rgba(255,255,255,.12);color:inherit;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer}' +
@@ -176,7 +197,17 @@
     '.cva-name{font-weight:800}.cva-ver{opacity:.7;font-size:12.5px}' +
     '.cva-dl{border:0;border-radius:999px;padding:9px 16px;font:800 14px/1 inherit;cursor:pointer;white-space:nowrap}' +
     '.cva--vice .cva-dl{color:#12062e;background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0) 50%),linear-gradient(90deg,#ff2bd6,#ff7a1a);box-shadow:0 0 12px rgba(255,43,214,.55)}' +
-    '.cva--cloud .cva-dl{color:#fff;background:#2f8cff}' +
+    '.cva--ff7 .cva-dl{color:#fff;background:#2f8cff}' +
+    // нейтральное оформление (обычные тёмная/светлая темы хоста)
+    '.cva--plain.cva-plate{color:var(--cvp-fg,#eef1f8);background:var(--cvp-bg,#1a1f2b);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(255,255,255,.12))}' +
+    '.cva--plain.cva-sheet{color:var(--cvp-fg,#eef1f8);background:var(--cvp-surface,#141924);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(255,255,255,.12))}' +
+    '.cva--plain.cva--day.cva-plate{color:var(--cvp-fg,#14213d);background:var(--cvp-bg,#fff);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(0,0,0,.12))}' +
+    '.cva--plain.cva--day.cva-sheet{color:var(--cvp-fg,#14213d);background:var(--cvp-surface,#fff);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(0,0,0,.12))}' +
+    '.cva--plain .cva-dl{color:var(--cvp-on-accent,#fff);background:var(--cvp-accent,#2f8cff)}.cva--plain.cva-plate .cva-stack img{background:transparent;box-shadow:none}' +
+    '.cva--plain .cva-switch{color:var(--cvp-accent,#2f8cff)}' +
+    '.cva--plain.cva--day .cva-item{border-bottom-color:rgba(0,0,0,.1)}.cva--plain.cva--day .cva-x{background:rgba(0,0,0,.07)}' +
+    '.cva--plain.cva--day .cva-item img,.cva--plain.cva--day .cva-item .cva-emo{background:rgba(0,0,0,.05)}' +
+    '.cva--plain.cva--day .cva-src a{background:rgba(0,0,0,.04);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}.cva--plain.cva--day .cva-src a:hover{background:rgba(0,0,0,.08)}' +
     '.cva-files{grid-column:1/-1;display:none;padding:2px 0 8px}.cva-item.is-open .cva-files{display:block}' +
     '.cva-file{margin:6px 0 2px;font-size:13px;opacity:.85}.cva-src{display:flex;flex-wrap:wrap;gap:6px}' +
     '.cva-src a{flex:1 1 30%;min-width:96px;text-align:center;padding:9px 10px;border-radius:10px;text-decoration:none;font-weight:800;font-size:13.5px;color:inherit;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}' +
@@ -214,7 +245,7 @@
     injectCss();
     if (openSheet) openSheet.close();
     var t = T[lang(o)], line = lineOf(o);
-    var back = el('div', 'cva-back'), sheet = el('div', 'cva-sheet cva--' + line);
+    var back = el('div', 'cva-back'), sheet = el('div', 'cva-sheet ' + lookCls(o, line));
     sheet.setAttribute('role', 'dialog');
     sheet.setAttribute('aria-modal', 'true');
     var head = el('div', 'cva-head'), h = el('h2', '', line === 'vice' ? t.vice : t.title), x = el('button', 'cva-x', '×');
@@ -292,7 +323,7 @@
     b.type = 'button';
     function paint() {
       var line = lineOf(o);
-      b.className = 'cva-plate cva--' + line;
+      b.className = 'cva-plate ' + lookCls(o, line);
       b.innerHTML = '';
       var st = el('span', 'cva-stack');
       var icons = line === 'vice' ? ['miami', 'vice-vpn', 'vice-wallet'].map(function (k) { return BASE + 'vice/' + k + '-64.png'; })
@@ -309,9 +340,9 @@
     b.onclick = function () { open(o); };
     if (o.replace !== false) host.innerHTML = '';
     host.appendChild(b);
-    // тема сменилась — плашка перекрашивается (линия 'auto')
+    // тема сменилась — плашка перекрашивается (линия или оформление 'auto')
     var mo = null;
-    if ((!o.line || o.line === 'auto') && G.MutationObserver) {
+    if ((!o.line || o.line === 'auto' || !o.look || o.look === 'auto') && G.MutationObserver) {
       mo = new G.MutationObserver(paint);
       mo.observe(doc.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
     }

@@ -585,11 +585,13 @@ impl AppAutoUpdater {
 
   #[cfg(target_os = "windows")]
   fn get_windows_download_url(&self, assets: &[AppReleaseAsset], arch: &str) -> Option<String> {
-    // Miami Browser and Chihua are one program with two installers: update with the installer of the installed line
-    let miami = crate::brand::read().line == "vice";
+    // Vice Antidetect (ex Miami Browser) and Chihua are one program with two installers: update with the installer
+    // of the installed line
+    let vice = crate::brand::read().line == "vice";
+    let is_vice = |n: &str| n.starts_with("Vice_Antidetect") || n.starts_with("ViceAntidetect") || n.starts_with("Miami");
     let assets: Vec<AppReleaseAsset> = assets
       .iter()
-      .filter(|a| a.name.starts_with("Miami") == miami)
+      .filter(|a| is_vice(&a.name) == vice)
       .cloned()
       .collect();
     let assets = assets.as_slice();

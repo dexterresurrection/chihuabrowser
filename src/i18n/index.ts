@@ -71,17 +71,17 @@ const resources = {
   vi: { translation: vi },
 };
 
-// Линия Miami Browser (Vice-темы): названия продуктов во всех строках по-Vice. Тексты переводов не дублируем —
+// Линия Vice Antidetect (Vice-темы): названия продуктов во всех строках по-Vice. Тексты переводов не дублируем —
 // подменяем имена на выходе. Линию ставит theme-provider (класс vice на <html>, событие chihua-line).
 const VICE_NAMES: [RegExp, string][] = [
-  [/Chihua Browser/g, "Miami Browser"],
+  [/Chihua Browser/g, "Vice Antidetect"],
   [/Cloud VPN/g, "Vice VPN"],
   [/Cloud Browser/g, "Vice Browser"],
   [/Cloud Mail/g, "Vice Mail"],
-  [/Cloud Messenger/g, "Vice Messenger"],
-  [/Cloud Social/g, "Vice Club"],
+  [/Cloud Messenger/g, "Vice Me"],
+  [/Cloud Social/g, "Vice Vibe"],
   [/Cloud Wallet/g, "Vice Wallet"],
-  [/Cloud Zapret/g, "Vice Zapret"],
+  [/Cloud Zapret/g, "Vice Zapret DPI"],
 ];
 let viceLine =
   typeof document !== "undefined" &&

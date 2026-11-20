@@ -155,7 +155,7 @@
   background-image: radial-gradient(120% 90% at 50% 0%, #0d1440, #060a1f 70%);
 }
 
-/* Vice · ночь (линия Miami Browser): цвета набора дизайна Cloud VPN v2 — сине-фиолетовая ночь, маджента и циан.
+/* Vice · ночь (линия Vice Antidetect): цвета набора дизайна Cloud VPN v2 — сине-фиолетовая ночь, маджента и циан.
    Рисунок и цвета свои. */
 html.dark.vice-night {
   --background: #07041c;

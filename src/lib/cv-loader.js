@@ -312,7 +312,7 @@
     return art([[far, 0], [body, 2], [det, 0]], a ? -0.8 : 0);
   }
 
-  // Чихуахуа в солнечных очках на гидроцикле (талисман Miami Browser).
+  // Чихуахуа в солнечных очках на гидроцикле (талисман Vice Antidetect, продукт miami; бывший Miami Browser).
   var CHI = { fawn: '#E9AE6E', cream: '#FBE0BC', inner: '#FFB3CF', ink: '#1A0A33' };
   function jetski(frame) {
     var a = frame === 0, c = CHI;
@@ -563,7 +563,7 @@
     try { pref = G.localStorage && G.localStorage.getItem('cv_loader_kind'); } catch (e) { /* */ }
     var look = themeLook();
     if (look.vice) {
-      // темы Vice: маслкар и катер по очереди; Miami Browser — всегда чихуахуа на гидроцикле
+      // темы Vice: маслкар и катер по очереди; Vice Antidetect (miami) — всегда чихуахуа на гидроцикле
       if (look.miami) return 'jetski';
       if (VICE_KINDS[pref]) return pref;
       lastVice = lastVice === 'car' ? 'boat' : 'car';
