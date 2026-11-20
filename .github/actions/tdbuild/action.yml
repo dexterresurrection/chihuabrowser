@@ -1,0 +1,48 @@
+name: tdbuild
+description: Cloud Gram for Windows (Telegram Desktop + desktop/apply.py), Release x64, on top of finished libraries
+runs:
+  using: composite
+  steps:
+    - name: libraries and full sources
+      uses: ./gram/.github/actions/tdlibs
+      with:
+        part: "build"
+        minutes: "60"
+        build: "true"
+    - name: apply Cloud Gram
+      shell: bash
+      run: python gram/desktop/apply.py "$TBUILD/tdesktop"
+    - name: configure and build
+      shell: cmd
+      run: |
+        cd %TBUILD%\tdesktop\Telegram
+        call configure.bat x64 -D TDESKTOP_API_TEST=ON -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON > %GITHUB_WORKSPACE%\configure.log 2>&1 || (type %GITHUB_WORKSPACE%\configure.log & exit /b 1)
+        cmake --build ..\out --config Release --parallel -- /v:m > %GITHUB_WORKSPACE%\build.log 2>&1
+        set RC=%ERRORLEVEL%
+        findstr /R /C:"error " /C:"error:" %GITHUB_WORKSPACE%\build.log > %GITHUB_WORKSPACE%\errors.txt
+        type %GITHUB_WORKSPACE%\errors.txt | more +0
+        exit /b %RC%
+    - name: package
+      shell: bash
+      run: |
+        mkdir -p out/CloudGram
+        cp "$TBUILD/tdesktop/out/Release/Telegram.exe" out/CloudGram/CloudGram.exe
+        curl -sSfL --retry 3 -o x.zip "https://github.com/XTLS/Xray-core/releases/download/$XRAY/Xray-windows-64.zip"
+        7z e -y -bso0 x.zip xray.exe -oout/CloudGram
+        echo '{"v":1,"brand":"cloud","name":"Cloud Gram","product":"gram-win","bypass":{"mode":"auto"}}' > out/CloudGram/brand.json
+        ls -la out/CloudGram
+        cd out && 7z a -mx=5 -bso0 CloudGram-win64.zip CloudGram
+    - uses: actions/upload-artifact@v4
+      with:
+        name: win64
+        path: out/CloudGram-win64.zip
+        retention-days: 7
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-logs
+        path: |
+          configure.log
+          build.log
+          errors.txt
+        retention-days: 7

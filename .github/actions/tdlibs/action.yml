@@ -1,0 +1,99 @@
+name: tdlibs
+description: Telegram Desktop libraries for win64 (prepare.py), continued from libs-in/Libraries.7z, cut at N minutes
+inputs:
+  part:
+    required: true
+  minutes:
+    required: true
+  build:
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: dirs
+      shell: cmd
+      run: |
+        mkdir %userprofile%\TBuild\Libraries\win64
+        mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+        echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+        echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+    - name: sources
+      shell: bash
+      run: |
+        # prepare.py also reads files of the submodules (cmake/external/…)
+        git clone -q --recursive --shallow-submodules --depth 1 -b "$TD_TAG" https://github.com/telegramdesktop/tdesktop.git "$TBUILD/tdesktop"
+        sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake || true
+        git config --global user.email "ci@example.com"
+        git config --global user.name "CI"
+    - uses: Eden-CI/msvc-dev-cmd@master
+      with:
+        arch: x64
+        sdk: ${{ env.SDK }}
+        toolset: "14.44"
+    - name: NuGet sources
+      shell: cmd
+      run: |
+        nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+        nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+    - name: previous libraries
+      shell: bash
+      run: |
+        if [ -f libs-in/Libraries.7z ]; then
+          7z x -y -bso0 -bsp0 libs-in/Libraries.7z -o"$TBUILD/Libraries/win64"
+          rm -f libs-in/Libraries.7z
+          ls "$TBUILD/Libraries/win64/cache_keys" | tr '\n' ' '
+        else
+          echo "starting from scratch"
+        fi
+        df -h /c || true
+    - name: prepare.py (cut at ${{ inputs.minutes }} min)
+      shell: pwsh
+      run: |
+        $log = "$env:GITHUB_WORKSPACE\prepare-${{ inputs.part }}.log"
+        $wrap = "$env:GITHUB_WORKSPACE\run-prepare.cmd"
+        Set-Content -Path $wrap -Encoding ascii -Value @(
+          '@echo off',
+          ('call "' + $env:TBUILD + '\tdesktop\Telegram\build\prepare\win.bat" silent > "' + $log + '" 2>&1'),
+          'exit /b %ERRORLEVEL%')
+        $p = Start-Process -FilePath cmd.exe -ArgumentList @('/c', "`"$wrap`"") -PassThru -NoNewWindow
+        $null = $p.Handle
+        $limit = [int]"${{ inputs.minutes }}" * 60
+        if (-not $p.WaitForExit($limit * 1000)) {
+          Write-Host "time is up: stopping prepare.py, the next job continues"
+          taskkill /T /F /PID $p.Id | Out-Null
+          Start-Sleep -Seconds 10
+          "TIMEOUT" | Out-File -Append $log
+        } else {
+          Write-Host "prepare.py exit code $($p.ExitCode)"
+          "EXIT $($p.ExitCode)" | Out-File -Append $log
+        }
+        Get-Content $log | Select-String -Pattern '^\[\d+/\d+\]|FAILED|TIMEOUT|EXIT|rror' | Select-Object -Last 150
+        Get-ChildItem "$env:TBUILD\Libraries\win64\cache_keys" -ErrorAction SilentlyContinue | ForEach-Object { $_.Name } | Out-File "$env:GITHUB_WORKSPACE\done-${{ inputs.part }}.txt"
+        exit 0
+    - name: free up disk (keep libraries, headers, cache keys)
+      shell: bash
+      run: |
+        find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' -o -name '*.rs' -o -name '*.toml' -o -name '*.json' -o -name '*.py' -o -name '*.def' -o -name '*.natvis' -o -name '*.pdb' ')' -type f ')' -o -empty ')' -delete || true
+        du -sh "$LibrariesPath" || true
+    - name: pack libraries
+      if: inputs.build != 'true'
+      shell: bash
+      run: |
+        mkdir -p libs-out
+        cd "$LibrariesPath" && 7z a -mx=1 -bso0 -bsp0 "$GITHUB_WORKSPACE/libs-out/Libraries.7z" . && ls -la "$GITHUB_WORKSPACE/libs-out"
+    - uses: actions/upload-artifact@v4
+      if: inputs.build != 'true'
+      with:
+        name: libs-${{ inputs.part }}
+        path: libs-out/Libraries.7z
+        compression-level: 0
+        retention-days: 7
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: prepare-log-${{ inputs.part }}
+        path: |
+          prepare-${{ inputs.part }}.log
+          done-${{ inputs.part }}.txt
+        retention-days: 7

@@ -1,0 +1,16 @@
+name: gram-win-check
+on: push
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cloud Gram / Vice Gram installers on Windows
+        shell: pwsh
+        run: ./check.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results
+          path: results

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apps</title>
+<style>
+  :root { --cvp-bg:#ffffff; --cvp-surface:#f3f4f7; --cvp-fg:#1b1d22; --cvp-edge:#d9dce3; --cvp-accent:#3d7be8; --cvp-on-accent:#fff; }
+  html.dark { --cvp-bg:#17191e; --cvp-surface:#22252c; --cvp-fg:#eceef3; --cvp-edge:#33373f; --cvp-accent:#5a9bf5; --cvp-on-accent:#fff; }
+  body { margin:0; padding:16px; background:var(--cvp-bg); color:var(--cvp-fg); font:15px/1.4 system-ui,-apple-system,Roboto,sans-serif; }
+  #apps, #ad { margin-bottom:16px; }
+  p.note { opacity:.65; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="apps"></div>
+<div id="ad" hidden></div>
+<p class="note" id="note"></p>
+<script src="cv-apps.js"></script>
+<script src="cv-ads.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var theme = q.get('theme') || 'light', line = q.get('line') || 'cloud', lang = q.get('lang') || 'ru';
+  var html = document.documentElement;
+  html.lang = lang;
+  theme.split(' ').forEach(function (c) { html.classList.add(c); });
+  if (theme.indexOf('vice') === 0) html.classList.add('vice');
+  var open = function (u) { location.href = u; };   // WebViewClient opens http(s) links in the browser
+  CvApps.plate(document.getElementById('apps'), { line: line, platform: 'android', current: [q.get('current') || ''],
+    inWebView: true, open: open, lang: lang });
+  CvAds.plate(document.getElementById('ad'), { slot: q.get('slot') || 'gram.settings', line: line, platform: 'android', open: open });
+  document.getElementById('note').textContent = lang === 'ru'
+    ? 'Неофициальный клиент Telegram от CloudVPN. Реклама показывается только здесь — не в чатах.'
+    : 'Unofficial Telegram client by CloudVPN. Ads are shown only here, never in chats.';
+})();
+</script>
+</body>
+</html>

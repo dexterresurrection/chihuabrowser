@@ -1,0 +1,201 @@
+name: gram-android
+# Cloud Gram / Vice Gram for Android: Telegram for Android (GPL-2.0) at a pinned commit + android/apply.py.
+# The APK is signed with upstream's public dummy key here; release signing and api_id happen on our side
+# (tools/brand_apk.py), never in CI.
+on: push
+env:
+  TG_REPO: https://github.com/TelegramMessenger/Telegram-Android.git
+  TG_COMMIT: 21f7d109da6ab3506c9e9577f98c6a38771ab335
+  TG_VERSION: 13.2.2
+  XRAY: v26.11.9
+jobs:
+  native:
+    # Telegram's native libraries built from the pinned sources (TMessagesProj/jni/prebuild + CMake), one ABI per runner.
+    # A later run reuses them: put that run's id into android/native-run-id.txt.
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gram
+      - name: reuse?
+        id: reuse
+        run: echo "id=$(cat gram/android/native-run-id.txt 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+      - name: free disk
+        if: steps.reuse.outputs.id == ''
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/powershell /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+      - uses: actions/setup-java@v4
+        if: steps.reuse.outputs.id == ''
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: tools
+        if: steps.reuse.outputs.id == ''
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq nasm yasm meson ninja-build gperf pkg-config autoconf automake libtool >/dev/null
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "ndk;27.2.12479018" "cmake;3.22.1" >/dev/null
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+      - name: sources (all submodules)
+        if: steps.reuse.outputs.id == ''
+        run: |
+          git init -q tg && cd tg
+          git remote add origin "$TG_REPO"
+          git fetch -q --depth 1 origin "$TG_COMMIT"
+          git checkout -q FETCH_HEAD
+          git submodule update --init --recursive --depth 1 -j 8 || git submodule update --init --recursive -j 8
+      - name: prebuilt third-party libraries (${{ matrix.abi }})
+        if: steps.reuse.outputs.id == ''
+        run: |
+          cd tg
+          ABIS="${{ matrix.abi }}" ANDROID_SDK_ROOT="$ANDROID_HOME" JOBS=4 bash TMessagesProj/jni/prebuild/build_all.sh > ../prebuild.log 2>&1 || { tail -80 ../prebuild.log; exit 1; }
+          tail -5 ../prebuild.log; ls TMessagesProj/jni/prebuild/lib/${{ matrix.abi }}
+      - name: libtmessages + libtwidget (${{ matrix.abi }})
+        if: steps.reuse.outputs.id == ''
+        run: |
+          cd tg
+          sed -i 's/abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"/abiFilters "${{ matrix.abi }}"/' TMessagesProj_AppStandalone/build.gradle
+          grep -n abiFilters TMessagesProj_AppStandalone/build.gradle
+          ./gradlew --no-daemon -q -Dorg.gradle.jvmargs="-Xmx6g" -Pandroid.injected.build.abi=${{ matrix.abi }} :TMessagesProj_AppStandalone:assembleAfatStandalone
+          APK=$(find TMessagesProj_AppStandalone/build/outputs/apk -name '*.apk' | head -1)
+          mkdir -p ../native && unzip -q -o "$APK" "lib/${{ matrix.abi }}/*" -d ../native
+          ls -la ../native/lib/${{ matrix.abi }}
+      - name: libraries from the earlier run
+        if: steps.reuse.outputs.id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.abi }}
+          path: native
+          run-id: ${{ steps.reuse.outputs.id }}
+          github-token: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.abi }}
+          path: native
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: prebuild-log-${{ matrix.abi }}
+          path: prebuild.log
+          retention-days: 3
+
+  build:
+    needs: native
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gram
+      - name: free disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/powershell /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: upstream Telegram for Android
+        run: |
+          git init -q tg && cd tg
+          git remote add origin "$TG_REPO"
+          git fetch -q --depth 1 origin "$TG_COMMIT"
+          git checkout -q FETCH_HEAD
+          git log -1 --format='%H %s'
+          for m in TMessagesProj/lib/jlatexmath TMessagesProj_Modules/media; do
+            git submodule update --init --depth 1 "$m" || git submodule update --init "$m"
+          done
+          grep -q "^APP_VERSION_NAME=$TG_VERSION$" gradle.properties
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: native
+          merge-multiple: true
+      - name: native libraries (built from the pinned sources by the native job)
+        run: |
+          mkdir -p tg/TMessagesProj_AppStandalone/src/main/jniLibs
+          cp -r native/lib/* tg/TMessagesProj_AppStandalone/src/main/jniLibs/
+          find tg/TMessagesProj_AppStandalone/src/main/jniLibs -type f | sort | xargs ls -la
+      - name: xray core (bypass)
+        run: |
+          set -e
+          J=tg/TMessagesProj_AppStandalone/src/main/jniLibs
+          for pair in arm64-v8a:android-arm64-v8a x86_64:android-amd64 armeabi-v7a:linux-arm32-v7a x86:linux-32; do
+            abi=${pair%%:*}; rel=${pair#*:}
+            [ -d "$J/$abi" ] || continue
+            curl -sSfL --retry 3 -o x.zip "https://github.com/XTLS/Xray-core/releases/download/$XRAY/Xray-$rel.zip"
+            curl -sSfL --retry 3 -o x.dgst "https://github.com/XTLS/Xray-core/releases/download/$XRAY/Xray-$rel.zip.dgst"
+            want=$(grep -i '^SHA2-256' x.dgst | sed 's/.*= *//')
+            [ "$(sha256sum x.zip | cut -d' ' -f1)" = "$want" ] || { echo "sha256 mismatch $rel"; exit 1; }
+            unzip -q -o x.zip xray -d xr && mv xr/xray "$J/$abi/libxray.so" && chmod 755 "$J/$abi/libxray.so"
+            echo "$abi ← Xray-$rel ($want)"
+          done
+      - name: apply Cloud Gram
+        run: |
+          sudo apt-get install -y -qq python3-pil fonts-dejavu-core >/dev/null
+          python3 gram/android/apply.py tg --build "$(cat gram/android/BUILD)"
+      - name: gradle
+        run: |
+          cd tg
+          ./gradlew --no-daemon -Dorg.gradle.jvmargs="-Xmx7g -XX:MaxMetaspaceSize=1g" :TMessagesProj_AppStandalone:assembleAfatStandalone
+          find . -name '*.apk' -path '*outputs*' | xargs ls -la
+      - name: collect
+        run: |
+          mkdir -p out
+          cp tg/TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/app.apk out/CloudGram-unsigned-ci.apk
+          BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$BT/aapt2" dump xmltree --file AndroidManifest.xml out/CloudGram-unsigned-ci.apk | grep -E 'messenger\.(Default|Vice)Icon' | tee out/res-check.txt
+          [ "$(wc -l < out/res-check.txt)" -ge 2 ] || { echo "no Cloud/Vice launcher aliases in the manifest"; exit 1; }
+          sha256sum out/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: out
+          retention-days: 3
+
+  check:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [28, 34]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: out
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: test server, CI APKs, Telegram blocked like in Russia
+        run: bash android/ci/prepare-check.sh
+      - name: emulator check
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 4096M
+          disk-size: 6G
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: API=${{ matrix.api }} bash android/ci/check-android.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-api-${{ matrix.api }}
+          path: results
