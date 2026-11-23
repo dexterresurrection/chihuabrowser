@@ -77,7 +77,65 @@ $bnd = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 $bmp = New-Object System.Drawing.Bitmap $bnd.Width,$bnd.Height
 [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($bnd.Location,[System.Drawing.Point]::Empty,$bnd.Size)
 $bmp.Save((Join-Path $res 'antidetect.png'))
+# taskbar: the button is drawn with the window's big icon (ICON_BIG); it must be the line's icon, not the one of the exe
+Add-Type @'
+using System; using System.Runtime.InteropServices;
+public static class W {
+  [DllImport("user32.dll")] public static extern IntPtr SendMessageW(IntPtr h, int m, IntPtr w, IntPtr l);
+}
+'@
+function Icon-Hash($ic) {
+  if (-not $ic) { return '' }
+  $b = $ic.ToBitmap(); $ms = New-Object System.IO.MemoryStream
+  (New-Object System.Drawing.Bitmap $b, 32, 32).Save($ms, [System.Drawing.Imaging.ImageFormat]::Bmp)
+  return [BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash($ms.ToArray())).Substring(0, 17)
+}
+$hb = [W]::SendMessageW($p.MainWindowHandle, 0x7F, [IntPtr]1, [IntPtr]0)
+Check 'taskbar: the window has a big icon' ($hb -ne [IntPtr]::Zero)
+if ($hb -ne [IntPtr]::Zero) {
+  $big = [System.Drawing.Icon]::FromHandle($hb)
+  $big.ToBitmap().Save((Join-Path $res 'antidetect-taskbar-icon.png'))
+  $exeIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($after.FullName)
+  $lineIcon = New-Object System.Drawing.Icon (Join-Path $dir 'miami.ico'), $big.Width, $big.Height
+  Check 'taskbar: big icon is not the exe icon' ((Icon-Hash $big) -ne (Icon-Hash $exeIcon))
+  Check 'taskbar: big icon is the Vice Antidetect icon' ((Icon-Hash $big) -eq (Icon-Hash $lineIcon)) "$($big.Width) px"
+}
 if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+Get-Process | Where-Object { $_.Path -eq $after.FullName } | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep 2
+
+# update inside the program: a download list served here says 9.9.9; the program must take the installer of its own line,
+# check SHA-256 and keep it for "Restart"; the installer itself must start the program again (/R)
+$sha = (Get-FileHash $vice.FullName -Algorithm SHA256).Hash.ToLower()
+$srv = Join-Path $env:RUNNER_TEMP 'upd'; New-Item -ItemType Directory -Force $srv | Out-Null
+Copy-Item $vice.FullName (Join-Path $srv 'ViceAntidetect-Setup-9.9.9.exe') -Force
+$list = @{ products = @{
+  miami = @{ version = '9.9.9'; files = @(@{ name = 'ViceAntidetect-Setup-9.9.9.exe'; sha256 = $sha
+    github = 'http://127.0.0.1:8799/missing.exe'; server = 'http://127.0.0.1:8799/ViceAntidetect-Setup-9.9.9.exe' }) }
+  chihua = @{ version = '9.9.9'; files = @(@{ name = 'wrong.exe'; sha256 = $sha; github = 'http://127.0.0.1:8799/wrong.exe' }) } } }
+$list | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8NoBOM (Join-Path $srv 'list.json')
+$web = Start-Process python -ArgumentList '-m','http.server','8799','--bind','127.0.0.1','--directory',$srv -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $res 'update-server.txt')
+Start-Sleep 3
+$upd = Join-Path $env:TEMP 'chihua_app_update'
+Remove-Item $upd -Recurse -Force -ErrorAction SilentlyContinue
+$env:CHIHUA_UPDATE_LIST = 'http://127.0.0.1:8799/list.json'
+$p = Start-Process $after.FullName -PassThru
+$got = Join-Path $upd 'ViceAntidetect-Setup-9.9.9.exe'
+$name1 = Join-Path $upd 'missing.exe'   # the file is named after the first link of the list
+for ($i = 0; $i -lt 60 -and -not ((Test-Path $got) -or (Test-Path $name1)); $i++) { Start-Sleep 2 }
+$file = if (Test-Path $got) { $got } else { $name1 }
+Check 'update: downloaded from the second mirror' (Test-Path $file) $file
+if (Test-Path $file) { Check 'update: SHA-256 matches' ((Get-FileHash $file -Algorithm SHA256).Hash.ToLower() -eq $sha) }
+Remove-Item Env:CHIHUA_UPDATE_LIST
+Start-Sleep 5
+$old = $p.Id
+if (Test-Path $file) {
+  Start-Process $file -ArgumentList '/S','/UPDATE','/R' -Wait
+  $new = $null
+  for ($i = 0; $i -lt 20 -and -not $new; $i++) { Start-Sleep 2; $new = Get-Process | Where-Object { $_.Path -eq $after.FullName -and $_.Id -ne $old } | Select-Object -First 1 }
+  Check 'update: the installer starts the program again' ($null -ne $new)
+}
+Stop-Process -Id $web.Id -Force -ErrorAction SilentlyContinue
 Get-Process | Where-Object { $_.Path -eq $after.FullName } | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 2
 

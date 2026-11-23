@@ -209,6 +209,8 @@ export interface AppUpdateInfo {
   manual_update_required: boolean;
   release_page_url?: string;
   repo_update: boolean;
+  sha256?: string;
+  mirrors?: string[];
 }
 
 export interface AppUpdateProgress {

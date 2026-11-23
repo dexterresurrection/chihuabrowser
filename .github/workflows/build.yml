@@ -81,6 +81,8 @@ jobs:
           done
       - working-directory: src-tauri
         run: cargo check --all-targets --message-format=short
+      - working-directory: src-tauri
+        run: cargo test --lib app_auto_updater::
 
   windows:
     needs: [secrets, tunnel, frontend, backend]
@@ -136,6 +138,9 @@ jobs:
           touch binaries/chihua-proxy-x86_64-pc-windows-msvc.exe
           cargo build --bin chihua-proxy --target x86_64-pc-windows-msvc --release
           cp target/x86_64-pc-windows-msvc/release/chihua-proxy.exe binaries/chihua-proxy-x86_64-pc-windows-msvc.exe
+      # the version people see ("About") is the number of the release, not the branch name
+      - shell: bash
+        run: echo "BUILD_TAG=v$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
       - run: pnpm exec tauri build --target x86_64-pc-windows-msvc --bundles nsis --no-sign
       # Vice Antidetect (product miami, ex Miami Browser): the same binaries, its own installer name, icon, pictures
       # and default theme (src-tauri/windows/miami: the uninstall key, folder, exe and AppUserModelID stay Chihua's)

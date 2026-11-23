@@ -61,11 +61,11 @@ pub fn get_brand() -> BrandInfo {
 pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
   use tauri::Manager;
   let name = name_of(&line);
-  let miami = line == "vice";
+  let vice = line == "vice";
   if let Some(w) = app.get_webview_window("main") {
     w.set_title(name).map_err(|e| e.to_string())?;
     // значок окна (панель задач): Vice Antidetect — малый значок хамелеона, иначе — значок программы
-    let icon = if miami {
+    let icon = if vice {
       tauri::image::Image::from_bytes(MIAMI_ICON).ok()
     } else {
       app.default_window_icon().cloned()
@@ -73,10 +73,16 @@ pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
     if let Some(icon) = icon {
       let _ = w.set_icon(icon);
     }
+    // панель задач рисует большой значок окна, а set_icon ставит только малый
+    #[cfg(target_os = "windows")]
+    if let (Ok(hwnd), Ok(exe)) = (w.hwnd(), std::env::current_exe()) {
+      let ico = if vice { vice_ico(&app, &exe) } else { None };
+      crate::taskbar::apply(hwnd.0 as isize, name, &exe, ico.as_deref());
+    }
   }
   if let Some(t) = app.tray_by_id("main") {
     let _ = t.set_tooltip(Some(name));
-    if miami {
+    if vice {
       if let Ok(icon) = tauri::image::Image::from_bytes(MIAMI_TRAY) {
         let _ = t.set_icon(Some(icon));
       }
@@ -93,6 +99,27 @@ pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
 /// вариант (до 96 px: голова, «VICE», знак сервиса): на панели задач он читается лучше полного рисунка.
 const MIAMI_ICON: &[u8] = include_bytes!("../windows/miami/miami-96.png");
 const MIAMI_TRAY: &[u8] = include_bytes!("../windows/miami/miami-32.png");
+/// Значок панели задач: .ico рядом с программой (его кладёт установщик Vice Antidetect); Vice-тема в установке
+/// Chihua — своя копия в папке данных.
+#[cfg(target_os = "windows")]
+fn vice_ico(app: &tauri::AppHandle, exe: &std::path::Path) -> Option<std::path::PathBuf> {
+  use tauri::Manager;
+  let near = exe.parent()?.join("miami.ico");
+  if near.is_file() {
+    return Some(near);
+  }
+  let dir = app.path().app_local_data_dir().ok()?.join("icons");
+  let file = dir.join("vice-antidetect.ico");
+  let same = std::fs::metadata(&file).is_ok_and(|m| m.len() == MIAMI_ICO.len() as u64);
+  if !same {
+    std::fs::create_dir_all(&dir).ok()?;
+    std::fs::write(&file, MIAMI_ICO).ok()?;
+  }
+  Some(file)
+}
+#[cfg(target_os = "windows")]
+const MIAMI_ICO: &[u8] = include_bytes!("../windows/miami/miami.ico");
+
 /// Значок в трее линии Chihua (тот же, что при запуске).
 const TRAY_ICON: &[u8] = include_bytes!("../icons/tray-icon-linux-44.png");
 

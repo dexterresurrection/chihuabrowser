@@ -111,6 +111,15 @@ pub async fn service_view_hide<R: Runtime>(app: AppHandle<R>) -> Result<(), Stri
   Ok(())
 }
 
+/// Назад по истории модуля.
+#[tauri::command]
+pub async fn service_view_back<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), String> {
+  if let Some(wv) = app.get_webview(&label(&id)?) {
+    wv.eval("history.back()").map_err(|e| e.to_string())?;
+  }
+  Ok(())
+}
+
 /// Перезагрузить модуль или вернуть его на адрес url.
 #[tauri::command]
 pub async fn service_view_reload<R: Runtime>(app: AppHandle<R>, id: String, url: Option<String>) -> Result<(), String> {

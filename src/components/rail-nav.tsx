@@ -12,6 +12,7 @@ import {
   LuLayoutGrid,
   LuMail,
   LuMessageCircle,
+  LuPalette,
   LuPlug,
   LuPuzzle,
   LuShare2,
@@ -20,6 +21,7 @@ import {
   LuWallet,
   LuZap,
 } from "react-icons/lu";
+import { useTheme } from "@/components/theme-provider";
 import { useLine } from "@/lib/line";
 import { cn } from "@/lib/utils";
 import { Logo } from "./icons/logo";
@@ -281,6 +283,14 @@ interface MoreMenuItem {
   hintKey: string;
 }
 
+const THEMES = [
+  { id: "dark", labelKey: "settings.appearance.dark" },
+  { id: "light", labelKey: "settings.appearance.light" },
+  { id: "vice-night", labelKey: "settings.appearance.viceNight" },
+  { id: "vice-day", labelKey: "settings.appearance.viceDay" },
+  { id: "system", labelKey: "settings.appearance.system" },
+];
+
 const MORE_ITEMS: MoreMenuItem[] = [
   {
     page: "import",
@@ -300,6 +310,26 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
   const { t } = useTranslation();
   const line = useLine();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const chooseTheme = (id: string) => {
+    setTheme(id);
+    // тот же выбор, что в настройках: сохраняем сразу
+    void import("@tauri-apps/api/core")
+      .then(async ({ invoke }) => {
+        const settings =
+          await invoke<Record<string, unknown>>("get_app_settings");
+        await invoke("save_app_settings", {
+          settings: { ...settings, theme: id },
+        });
+      })
+      .catch(() => undefined);
+  };
+  // модуль сервиса — отдельное окно поверх страницы: пока открыто меню полосы, прячем его, иначе меню под ним не видно
+  const overlay = moreOpen || themeOpen;
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("chihua-overlay", { detail: overlay }));
+  }, [overlay]);
   const {
     logoRef,
     isPressed,
@@ -421,6 +451,32 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
           <button
             type="button"
             onClick={() => {
+              setMoreOpen(false);
+              setThemeOpen((v) => !v);
+            }}
+            aria-label={t("settings.appearance.theme")}
+            aria-expanded={themeOpen}
+            className={cn(
+              "grid place-items-center size-7 rounded-md transition-colors duration-100 shrink-0",
+              themeOpen
+                ? "text-foreground bg-accent"
+                : "text-muted-foreground hover:text-card-foreground hover:bg-accent/50",
+            )}
+          >
+            <LuPalette className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          {t("settings.appearance.theme")}
+        </TooltipContent>
+      </Tooltip>
+
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => {
+              setThemeOpen(false);
               setMoreOpen((v) => !v);
             }}
             aria-label={t("rail.more.label")}
@@ -465,6 +521,38 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
         </TooltipTrigger>
         <TooltipContent side="right">{t("rail.settings")}</TooltipContent>
       </Tooltip>
+
+      {themeOpen && (
+        <>
+          <button
+            type="button"
+            aria-label={t("rail.more.closeAriaLabel")}
+            className="fixed inset-0 z-30 bg-transparent cursor-default"
+            onClick={() => {
+              setThemeOpen(false);
+            }}
+          />
+          <div className="absolute bottom-14 left-11 w-44 bg-card border border-border rounded-lg shadow-2xl p-1 z-40 animate-in fade-in-0 slide-in-from-bottom-1 duration-100">
+            {THEMES.map(({ id, labelKey }) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={theme === id}
+                onClick={() => {
+                  setThemeOpen(false);
+                  chooseTheme(id);
+                }}
+                className={cn(
+                  "flex items-center w-full px-2 py-1.5 rounded-md hover:bg-accent transition-colors duration-100 text-left text-xs font-medium",
+                  theme === id ? "text-foreground bg-accent/60" : "text-muted-foreground",
+                )}
+              >
+                {t(labelKey)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {moreOpen && (
         <>

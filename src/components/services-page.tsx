@@ -4,7 +4,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuExternalLink, LuHouse, LuRefreshCw } from "react-icons/lu";
+import {
+  LuArrowLeft,
+  LuExternalLink,
+  LuHouse,
+  LuRefreshCw,
+} from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { ZapretCard } from "@/components/zapret-card";
 import type { CvAppsApi } from "@/lib/cv-apps";
@@ -141,10 +146,24 @@ function WebModule({ id, url }: { id: ServiceId; url: string }) {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     window.addEventListener("resize", update);
+    // меню левой полосы (тема, «ещё») рисуется под окном модуля: на время меню модуль прячем
+    const onOverlay = (e: Event) => {
+      if ((e as CustomEvent<boolean>).detail) {
+        void invoke("service_view_hide").catch(() => undefined);
+      } else if (box.current) {
+        void invoke("service_view_show", {
+          id,
+          url,
+          bounds: rectOf(box.current),
+        }).catch(() => undefined);
+      }
+    };
+    window.addEventListener("chihua-overlay", onOverlay);
     return () => {
       alive = false;
       ro.disconnect();
       window.removeEventListener("resize", update);
+      window.removeEventListener("chihua-overlay", onOverlay);
       void invoke("service_view_hide").catch(() => undefined);
     };
   }, [id, url]);
@@ -152,6 +171,17 @@ function WebModule({ id, url }: { id: ServiceId; url: string }) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border shrink-0">
+        <Button
+          size="sm"
+          variant="ghost"
+          title={t("common.buttons.back")}
+          aria-label={t("common.buttons.back")}
+          onClick={() => {
+            void invoke("service_view_back", { id });
+          }}
+        >
+          <LuArrowLeft className="size-3.5" />
+        </Button>
         <span className="text-sm font-medium flex-1 truncate">
           {t(`services.${id}.title`)}
         </span>

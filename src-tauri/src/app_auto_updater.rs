@@ -111,6 +111,102 @@ pub struct AppUpdateInfo {
   pub release_page_url: Option<String>,
   /// True when a system package manager repo is configured (apt/dnf/zypper)
   pub repo_update: bool,
+  /// SHA-256 of the installer from the download list (Windows); the file is refused when it differs
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub sha256: Option<String>,
+  /// The same file in other places, tried in order after download_url
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub mirrors: Vec<String>,
+}
+
+/// Download list of all our programs: GitHub first, then our server. Releases of this repository are not used on
+/// Windows: installers are published there, under the product of the installed line (chihua / miami).
+const DOWNLOAD_LISTS: [&str; 2] = [
+  "https://github.com/dexterresurrection/cloudvpn-downloads/releases/download/manifest/downloads.json",
+  "https://cabinet.zjd.uk/app/downloads.json",
+];
+/// No data for this long — the next mirror (the part already on disk is kept and resumed).
+const STALL: std::time::Duration = std::time::Duration::from_secs(25);
+
+/// "v0.27.1", "0.27.1-abc1234" → (0, 27, 1)
+fn version_triple(v: &str) -> (u32, u32, u32) {
+  let mut it = v
+    .trim_start_matches('v')
+    .split(['-', '+'])
+    .next()
+    .unwrap_or("")
+    .split('.')
+    .map(|x| x.parse::<u32>().unwrap_or(0));
+  (
+    it.next().unwrap_or(0),
+    it.next().unwrap_or(0),
+    it.next().unwrap_or(0),
+  )
+}
+
+/// Update from the download list for the product, or None when the installed version is not older.
+fn update_from_list(
+  list: &serde_json::Value,
+  product: &str,
+  current: &str,
+) -> Option<AppUpdateInfo> {
+  let p = list.get("products")?.get(product)?;
+  let version = p.get("version")?.as_str()?;
+  if version_triple(version) <= version_triple(current) {
+    return None;
+  }
+  let file = p.get("files")?.as_array()?.iter().find(|f| {
+    f.get("name")
+      .and_then(|n| n.as_str())
+      .is_some_and(|n| n.to_lowercase().ends_with(".exe"))
+  })?;
+  let mut links: Vec<String> = ["github", "server", "bucket"]
+    .iter()
+    .filter_map(|k| file.get(k).and_then(|u| u.as_str()))
+    .filter(|u| u.starts_with("https://") || u.starts_with("http://127.0.0.1:"))
+    .map(str::to_string)
+    .collect();
+  if links.is_empty() {
+    return None;
+  }
+  let sha256 = file
+    .get("sha256")
+    .and_then(|s| s.as_str())
+    .filter(|s| s.len() == 64)
+    .map(|s| s.to_lowercase())?;
+  let download_url = links.remove(0);
+  Some(AppUpdateInfo {
+    current_version: current.to_string(),
+    new_version: version.to_string(),
+    release_notes: p
+      .get("notes")
+      .and_then(|n| n.as_str())
+      .unwrap_or("")
+      .to_string(),
+    download_url,
+    is_nightly: false,
+    published_at: String::new(),
+    manual_update_required: false,
+    release_page_url: None,
+    repo_update: false,
+    sha256: Some(sha256),
+    mirrors: links,
+  })
+}
+
+fn file_sha256(path: &Path) -> std::io::Result<String> {
+  use sha2::{Digest, Sha256};
+  let mut h = Sha256::new();
+  let mut f = fs::File::open(path)?;
+  let mut buf = vec![0u8; 1024 * 1024];
+  loop {
+    let n = std::io::Read::read(&mut f, &mut buf)?;
+    if n == 0 {
+      break;
+    }
+    h.update(&buf[..n]);
+  }
+  Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
 }
 
 pub struct AppAutoUpdater {
@@ -158,6 +254,9 @@ impl AppAutoUpdater {
   pub async fn check_for_updates(
     &self,
   ) -> Result<Option<AppUpdateInfo>, Box<dyn std::error::Error + Send + Sync>> {
+    if cfg!(target_os = "windows") {
+      return self.check_download_list().await;
+    }
     let current_version = Self::get_current_version();
     let is_nightly = Self::is_nightly_build();
 
@@ -230,6 +329,8 @@ impl AppAutoUpdater {
           manual_update_required,
           release_page_url: Some(release_page_url),
           repo_update,
+          sha256: None,
+          mirrors: Vec::new(),
         };
 
         log::info!(
@@ -255,6 +356,8 @@ impl AppAutoUpdater {
             manual_update_required: false,
             release_page_url: Some(release_page_url),
             repo_update: false,
+            sha256: None,
+            mirrors: Vec::new(),
           };
 
           log::info!(
@@ -272,6 +375,54 @@ impl AppAutoUpdater {
     }
 
     Ok(None)
+  }
+
+  /// Windows: the version of our product in the download list
+  async fn check_download_list(
+    &self,
+  ) -> Result<Option<AppUpdateInfo>, Box<dyn std::error::Error + Send + Sync>> {
+    let current = env!("CARGO_PKG_VERSION");
+    // Vice Antidetect (product miami) and Chihua are one program with two installers: the installed line's one
+    let product = if crate::brand::read().line == "vice" {
+      "miami"
+    } else {
+      "chihua"
+    };
+    // CI check of the whole update: a list served by the test itself, loopback only
+    let sources: Vec<String> = match std::env::var("CHIHUA_UPDATE_LIST") {
+      Ok(u) if u.starts_with("http://127.0.0.1:") => vec![u],
+      _ => DOWNLOAD_LISTS.iter().map(|s| s.to_string()).collect(),
+    };
+    let mut last: Box<dyn std::error::Error + Send + Sync> = "no download list".into();
+    for url in &sources {
+      let got = async {
+        let r = self
+          .client
+          .get(url)
+          .header("User-Agent", "ChihuaBrowser")
+          .timeout(std::time::Duration::from_secs(30))
+          .send()
+          .await?
+          .error_for_status()?;
+        r.json::<serde_json::Value>().await
+      }
+      .await;
+      match got {
+        Ok(list) => {
+          let found = update_from_list(&list, product, current);
+          log::info!(
+            "Update check: {product} {current}, list says {:?}",
+            found.as_ref().map(|u| &u.new_version)
+          );
+          return Ok(found);
+        }
+        Err(e) => {
+          log::warn!("Download list {url}: {e}");
+          last = e.into();
+        }
+      }
+    }
+    Err(last)
   }
 
   /// Fetch app releases from GitHub
@@ -588,7 +739,9 @@ impl AppAutoUpdater {
     // Vice Antidetect (ex Miami Browser) and Chihua are one program with two installers: update with the installer
     // of the installed line
     let vice = crate::brand::read().line == "vice";
-    let is_vice = |n: &str| n.starts_with("Vice_Antidetect") || n.starts_with("ViceAntidetect") || n.starts_with("Miami");
+    let is_vice = |n: &str| {
+      n.starts_with("Vice_Antidetect") || n.starts_with("ViceAntidetect") || n.starts_with("Miami")
+    };
     let assets: Vec<AppReleaseAsset> = assets
       .iter()
       .filter(|a| is_vice(&a.name) == vice)
@@ -722,41 +875,100 @@ impl AppAutoUpdater {
     None
   }
 
-  /// Download the update file without progress tracking (silent download)
+  /// Download the update file without progress tracking: the mirrors in order, each resumes the part on disk; the
+  /// finished file must match SHA-256 when the download list gave one.
   async fn download_update_silent(
     &self,
-    download_url: &str,
+    urls: &[String],
+    sha256: Option<&str>,
     dest_dir: &Path,
     filename: &str,
   ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
     let file_path = dest_dir.join(filename);
-
-    let response = self
-      .client
-      .get(download_url)
-      .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36")
-      .send()
-      .await?;
-
-    if !response.status().is_success() {
-      return Err(format!("Download failed with status: {}", response.status()).into());
+    let part = dest_dir.join(format!("{filename}.part"));
+    let mut last: Box<dyn std::error::Error + Send + Sync> = "no download links".into();
+    for url in urls {
+      match self.download_part(url, &part).await {
+        Ok(()) => {
+          if let Some(want) = sha256 {
+            let got = file_sha256(&part)?;
+            if got != want {
+              let _ = fs::remove_file(&part);
+              log::warn!("{url}: SHA-256 differs");
+              last = "the downloaded file differs from the one in the list".into();
+              continue;
+            }
+          }
+          let _ = fs::remove_file(&file_path);
+          fs::rename(&part, &file_path)?;
+          log::info!("Silent download completed: {}", file_path.display());
+          return Ok(file_path);
+        }
+        Err(e) => {
+          log::warn!("{url}: {e}");
+          last = e;
+        }
+      }
     }
+    Err(last)
+  }
 
-    let total_size = response.content_length().unwrap_or(0);
-    log::info!("Silent download size: {} bytes", total_size);
-    let raw_file = fs::File::create(&file_path)?;
-    let mut file = std::io::BufWriter::with_capacity(8 * 1024 * 1024, raw_file);
-    let mut stream = response.bytes_stream();
-
+  async fn download_part(
+    &self,
+    url: &str,
+    part: &Path,
+  ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use futures_util::StreamExt;
-    while let Some(chunk) = stream.next().await {
-      let chunk = chunk?;
-      file.write_all(&chunk)?;
+    let have = fs::metadata(part).map(|m| m.len()).unwrap_or(0);
+    let mut req = self.client.get(url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36");
+    if have > 0 {
+      req = req.header("Range", format!("bytes={have}-"));
     }
-    std::io::Write::flush(&mut file)?;
-
-    log::info!("Silent download completed: {}", file_path.display());
-    Ok(file_path)
+    let response = tokio::time::timeout(STALL, req.send())
+      .await
+      .map_err(|_| "no answer")??;
+    let status = response.status().as_u16();
+    if status == 416 {
+      return Ok(()); // the part is already the whole file: SHA-256 decides
+    }
+    if !response.status().is_success() {
+      return Err(format!("Download failed with status: {status}").into());
+    }
+    let append = status == 206 && have > 0;
+    let raw = fs::OpenOptions::new()
+      .create(true)
+      .write(true)
+      .append(append)
+      .truncate(!append)
+      .open(part)?;
+    let mut file = std::io::BufWriter::with_capacity(1024 * 1024, raw);
+    let mut left = response.content_length();
+    let mut stream = response.bytes_stream();
+    loop {
+      let next = match tokio::time::timeout(STALL, stream.next()).await {
+        Ok(n) => n,
+        Err(_) => {
+          file.flush()?;
+          return Err("no data for 25 s".into());
+        }
+      };
+      match next {
+        Some(Ok(chunk)) => {
+          file.write_all(&chunk)?;
+          left = left.map(|l| l.saturating_sub(chunk.len() as u64));
+        }
+        Some(Err(e)) => {
+          file.flush()?;
+          return Err(e.into());
+        }
+        None => break,
+      }
+    }
+    file.flush()?;
+    match left {
+      Some(l) if l > 0 => Err("the connection closed early".into()),
+      _ => Ok(()),
+    }
   }
 
   /// Download and prepare app update (silent download + install + notify)
@@ -779,8 +991,10 @@ impl AppAutoUpdater {
 
     log::info!("Downloading update from: {}", update_info.download_url);
 
+    let mut urls = vec![update_info.download_url.clone()];
+    urls.extend(update_info.mirrors.iter().cloned());
     let download_path = self
-      .download_update_silent(&update_info.download_url, &temp_dir, &filename)
+      .download_update_silent(&urls, update_info.sha256.as_deref(), &temp_dir, &filename)
       .await?;
 
     log::info!("Extracting update...");
@@ -1567,9 +1781,9 @@ rm "{}"
 
         let (file, parameters) = match ext.as_str() {
           "exe" => {
-            // NSIS installer: /S for silent, /UPDATE tells it this is an update
+            // NSIS installer: /S for silent, /UPDATE tells it this is an update, /R starts the program again after it
             let file = installer_path.as_os_str().to_os_string();
-            let params = std::ffi::OsString::from("/S /UPDATE");
+            let params = std::ffi::OsString::from("/S /UPDATE /R");
             (file, params)
           }
           "msi" => {
@@ -1789,6 +2003,38 @@ pub async fn check_for_app_updates_manual() -> Result<Option<AppUpdateInfo>, Str
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn update_list_picks_product_and_newer_version() {
+    let sha = "a".repeat(64);
+    let list = serde_json::json!({"products": {
+      "chihua": {"version": "0.27.1", "files": [{"name": "ChihuaBrowser-Setup-0.27.1.exe", "sha256": sha,
+        "github": "https://example.com/g.exe", "server": "https://example.com/s.exe", "bucket": "http://plain/b.exe"}]},
+      "miami": {"version": "0.27.0-d71dc46", "files": [{"name": "ViceAntidetect-Setup.exe", "sha256": sha,
+        "github": "https://example.com/v.exe"}]}
+    }});
+    let u = update_from_list(&list, "chihua", "0.27.0").expect("newer");
+    assert_eq!(u.new_version, "0.27.1");
+    assert_eq!(u.download_url, "https://example.com/g.exe");
+    assert_eq!(u.mirrors, vec!["https://example.com/s.exe".to_string()]);
+    assert_eq!(u.sha256.as_deref(), Some(sha.as_str()));
+    assert!(update_from_list(&list, "chihua", "0.27.1").is_none());
+    assert!(update_from_list(&list, "chihua", "0.28.0").is_none());
+    // the old versions with a commit in the name are not newer than the same number
+    assert!(update_from_list(&list, "miami", "0.27.0").is_none());
+    assert!(update_from_list(&list, "nothing", "0.1.0").is_none());
+    // no SHA-256 in the list — no update
+    let bare = serde_json::json!({"products": {"chihua": {"version": "9.0.0", "files": [
+      {"name": "x.exe", "github": "https://example.com/g.exe"}]}}});
+    assert!(update_from_list(&bare, "chihua", "0.27.0").is_none());
+  }
+
+  #[test]
+  fn version_numbers() {
+    assert_eq!(version_triple("v0.27.1"), (0, 27, 1));
+    assert_eq!(version_triple("0.27.0-d71dc46"), (0, 27, 0));
+    assert!(version_triple("0.27.10") > version_triple("0.27.9"));
+  }
 
   #[test]
   fn test_is_nightly_build() {

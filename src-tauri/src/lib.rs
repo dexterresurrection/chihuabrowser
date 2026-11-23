@@ -50,6 +50,8 @@ pub mod traffic_stats;
 mod chihua_manager;
 mod cloudvpn;
 mod services;
+#[cfg(target_os = "windows")]
+mod taskbar;
 mod brand;
 mod zapret;
 // mod theme_detector; // removed: theme detection handled in webview via CSS prefers-color-scheme
@@ -2156,6 +2158,7 @@ pub fn run() {
       services::service_view_show,
       services::service_view_bounds,
       services::service_view_hide,
+      services::service_view_back,
       services::service_view_reload,
       services::services_apps,
       brand::get_brand,
