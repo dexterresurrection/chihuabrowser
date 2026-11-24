@@ -111,6 +111,20 @@ pub async fn service_view_hide<R: Runtime>(app: AppHandle<R>) -> Result<(), Stri
   Ok(())
 }
 
+/// Тема программы — открытым модулям (наши страницы понимают CvTheme.follow; чужого имени темы не передаём).
+#[tauri::command]
+pub async fn service_view_theme<R: Runtime>(app: AppHandle<R>, theme: String) -> Result<(), String> {
+  if !matches!(theme.as_str(), "dark" | "light" | "vice-night" | "vice-day") {
+    return Err("неизвестная тема".into());
+  }
+  for (name, wv) in app.webviews() {
+    if name.starts_with(PREFIX) {
+      let _ = wv.eval(format!("window.CvTheme&&CvTheme.follow('{theme}')"));
+    }
+  }
+  Ok(())
+}
+
 /// Назад по истории модуля.
 #[tauri::command]
 pub async fn service_view_back<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), String> {

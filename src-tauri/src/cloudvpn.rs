@@ -229,12 +229,26 @@ async fn authed(path: &str) -> Result<serde_json::Value, String> {
   if status != 401 {
     return if status >= 400 { Err(detail(&value, "Ошибка кабинета")) } else { Ok(value) };
   }
-  let (status, value) = call(reqwest::Method::POST, "/cabinet/auth/refresh", None, Some(json!({ "refresh_token": session.refresh_token }))).await?;
-  if status >= 400 {
+  // rotate: раз в сутки кабинет отдаёт новый refresh-токен — пока программой пользуются, вход не кончается через неделю
+  let (status, value) = call(
+    reqwest::Method::POST,
+    "/cabinet/auth/refresh",
+    None,
+    Some(json!({ "refresh_token": session.refresh_token, "rotate": true })),
+  )
+  .await?;
+  if status == 401 {
     let _ = std::fs::remove_file(self::path(SESSION_FILE));
     return Err("Сеанс истёк, войдите снова".to_string());
   }
+  if status >= 400 {
+    // сбой кабинета — не выход из аккаунта
+    return Err(detail(&value, "Кабинет не отвечает, попробуйте позже"));
+  }
   session.access_token = value.get("access_token").and_then(|v| v.as_str()).unwrap_or("").to_string();
+  if let Some(t) = value.get("refresh_token").and_then(|v| v.as_str()).filter(|t| !t.is_empty()) {
+    session.refresh_token = t.to_string();
+  }
   save(SESSION_FILE, &session)?;
   let (status, value) = call(reqwest::Method::GET, path, Some(&session.access_token), None).await?;
   if status >= 400 {

@@ -20,7 +20,12 @@
  * - Приватность: все запросы — fetch с credentials:'omit' и referrerPolicy:'no-referrer' (sendBeacon не используется —
  *   он шлёт куки); картинки — <img referrerpolicy="no-referrer">. С опцией sources (сеть через приложение) показы уходят
  *   только через send; без send они копятся, напрямую ничего не отправляется.
- * - Форматы мест: wide 4:1, side 2:1, strip 6:1 (image_strip; иначе image слева на 2/3 и title справа).
+ * - Форматы мест: wide — низкая: содержимое до 52 px (картинка 4:1 — целиком слева и подпись справа, image_strip 6:1 —
+ *   целиком, если подходит по ширине) и под ним строка маркировки, если она есть у баннеров места; side 2:1;
+ *   strip 6:1 (image_strip; иначе image слева на 2/3 и title справа).
+ * - У нижнего края экрана (не в прокрутке) плашка отступает от скруглённых углов и полосы жестов: env(safe-area-inset-bottom)
+ *   и радиусы углов из переменных --cv-corner-bl / --cv-corner-br (px; их ставит приложение-хост — CvTheme/хост WebView),
+ *   без них на сенсорном экране — запас 20 px. Отключить: edge: false.
  * - Нажатие — open(url) (по умолчанию новое окно): click + '?s=' + слот, если ads.json пришёл с сервера сейчас;
  *   url, если показан кэш (клик тогда считается в пакете как clk).
  * - Маркировка: mark.label → метка «Реклама» (у HTML — в строке заголовка); advertiser / erid → строка «Реклама · … ·
@@ -186,9 +191,10 @@
 
   // ── вид ──
   var CSS = '' +
+    '.cvad-edge{width:100%;box-sizing:border-box}' +
     '.cvad{position:relative;width:100%;overflow:hidden;border-radius:14px;user-select:none;-webkit-user-select:none;font:600 14px/1.3 var(--cvad-font,system-ui,-apple-system,Segoe UI,Roboto,sans-serif)}' +
-    '.cvad--wide{aspect-ratio:4/1}.cvad--side{aspect-ratio:2/1}.cvad--strip{aspect-ratio:6/1;border-radius:10px}' +
-    '.cvad-rowin{flex:1 1 0;min-height:0;display:flex;align-items:center;overflow:hidden}.cvad-rowin .cvad-img{width:66.7%;height:100%;flex:none}.cvad-rowin .cvad-cap{flex:1;padding:0 10px;font-weight:800;font-size:13px;overflow:hidden;display:-webkit-box;line-height:17px;-webkit-line-clamp:var(--cvad-cap-lines,2);-webkit-box-orient:vertical}' +
+    '.cvad--wide{height:52px}.cvad--side{aspect-ratio:2/1}.cvad--strip{aspect-ratio:6/1;border-radius:10px}' +
+    '.cvad-rowin{flex:1 1 0;min-height:0;display:flex;align-items:center;overflow:hidden}.cvad-rowin .cvad-img{width:66.7%;height:100%;flex:none}.cvad--wide .cvad-rowin .cvad-img{width:auto;max-width:68%;aspect-ratio:4/1}.cvad-rowin .cvad-cap{flex:1;padding:0 10px;font-weight:800;font-size:13px;overflow:hidden;display:-webkit-box;line-height:17px;-webkit-line-clamp:var(--cvad-cap-lines,2);-webkit-box-orient:vertical}' +
     '.cvad-line{flex:1;display:flex;align-items:center;gap:10px;padding:0 12px;min-width:0}.cvad-line b{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}' +
     '.cvad--ff7{background:linear-gradient(180deg,#24409e,#14247a);box-shadow:0 0 0 1px #21253c,inset 0 0 0 2px #bcc2d6;color:#f2f4fa}' +
     '.cvad--plain{background:var(--cvp-bg,#1a1f2b);color:var(--cvp-fg,#eef1f8);box-shadow:inset 0 0 0 1px var(--cvp-edge,rgba(255,255,255,.12))}' +
@@ -207,7 +213,7 @@
     '.cvad-html b.cvad-t{flex:1;min-width:0;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.cvad-txt{font-size:13px;line-height:17px;opacity:.92;overflow:hidden;display:-webkit-box;-webkit-line-clamp:var(--cvad-lines,2);-webkit-box-orient:vertical}' +
     '.cvad-cta-in{display:none;flex:none}.cvad--m .cvad-cta-in,.cvad--s .cvad-cta-in{display:inline-block}.cvad--m .cvad-cta-bl,.cvad--s .cvad-cta-bl{display:none}' +
-    '.cvad--s .cvad-txt,.cvad--notxt .cvad-txt,.cvad--nocta .cvad-cta-in{display:none}.cvad--s b.cvad-t{font-size:13px}.cvad--s .cvad-html{padding:3px 10px}' +
+    '.cvad--tight .cvad-html{padding:4px 12px}.cvad--s .cvad-txt,.cvad--notxt .cvad-txt,.cvad--nocta .cvad-cta-in{display:none}.cvad--s b.cvad-t{font-size:13px}.cvad--s .cvad-html{padding:3px 10px}' +
     '.cvad-cta{align-self:flex-start;margin-top:2px;padding:4px 12px;border-radius:999px;font-weight:800;font-size:12.5px;background:rgba(255,255,255,.18)}' +
     '.cvad--vice .cvad-cta{background:linear-gradient(90deg,#ff2bd6,#ff7a1a);color:#12062e}' +
     '.cvad--ff7 .cvad-cta{background:#2f8cff;color:#fff}' +
@@ -231,6 +237,39 @@
   /** Разрешены только <b strong i em u s br small> без атрибутов; всё остальное — текстом. */
   function safeHtml(h) {
     return esc(h).replace(/&lt;(\/?)([a-z]+)\s*\/?&gt;/gi, function (m, sl, tag) { tag = tag.toLowerCase(); return ALLOWED.test(tag) ? '<' + sl + tag + '>' : m; });
+  }
+  var WIDE_MAX = 52, LEGAL = 17;
+  /** Высота содержимого wide (над строкой маркировки) и вид картинки: f — 4:1 целиком, s — полоса 6:1, r — слева с подписью. */
+  function wideHeight(w) { return Math.min(w / 4, WIDE_MAX); }
+  function wideImage(w, hasStrip) { var r = w / wideHeight(w); return r <= 4.6 ? 'f' : hasStrip && r >= 5.2 && r <= 6.8 ? 's' : 'r'; }
+  /** Отступ от боковой стороны, чтобы скруглённый угол плашки лежал внутри угла экрана (как CvScreen.side в Kotlin). */
+  function cornerSide(R, r, side, below) {
+    var k = 0.29289, y = below + k * r;
+    if (R <= 0 || y >= R) return 0;
+    var free = R - 2, dy = R - y, x = dy >= free ? R : R - Math.sqrt(free * free - dy * dy);
+    return Math.min(28, Math.max(0, x - k * r - side));
+  }
+  /** Плашка едет вместе с прокруткой (тогда отступы от углов экрана не нужны); закреплённая (fixed, sticky) — нет. */
+  function inScroll(n) {
+    for (; n && n !== doc.documentElement; n = n.parentElement) {
+      var st = G.getComputedStyle(n);
+      if (st.position === 'fixed' || st.position === 'sticky') return false;
+      if (n !== doc.body && (st.overflowY === 'auto' || st.overflowY === 'scroll') && n.scrollHeight > n.clientHeight + 1) return true;
+    }
+    var de = doc.documentElement;
+    return de.scrollHeight > de.clientHeight + 1;
+  }
+  /** Полоса жестов (env(safe-area-inset-bottom)) и радиусы нижних углов экрана, px. */
+  function screenEdges() {
+    var pr = el('div'); pr.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px)';
+    doc.body.appendChild(pr);
+    var bar = parseFloat(G.getComputedStyle(pr).paddingBottom) || 0;
+    doc.body.removeChild(pr);
+    var cs = G.getComputedStyle(doc.documentElement);
+    var bl = parseFloat(cs.getPropertyValue('--cv-corner-bl')), br = parseFloat(cs.getPropertyValue('--cv-corner-br')), coarse = false;
+    try { coarse = G.matchMedia('(pointer: coarse)').matches; } catch (e) { /* */ }
+    var top = G.parent === G;  // во фрейме углы экрана не наши — их учитывает страница хоста
+    return { bar: top ? bar : 0, bl: isNaN(bl) ? (coarse && top ? 20 : 0) : bl, br: isNaN(br) ? (coarse && top ? 20 : 0) : br };
   }
   function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
@@ -262,13 +301,15 @@
     o = o || {};
     css();
     var slot = o.slot, destroyed = false, timer = 0, impTimer = 0, visible = false, p = null, feed = null, cur = null;
-    var box = el('div', 'cvad'), layers = [el('div', 'cvad-layer'), el('div', 'cvad-layer')], front = 0;
+    var wrap = el('div', 'cvad-edge'), box = el('div', 'cvad'), layers = [el('div', 'cvad-layer'), el('div', 'cvad-layer')], front = 0;
     layers.forEach(function (l) { l.setAttribute('aria-hidden', 'true'); box.appendChild(l); });
     var label = el('span', 'cvad-label');
     box.appendChild(label);
     host.hidden = true;
     if (o.replace !== false) host.innerHTML = '';
-    host.appendChild(box);
+    wrap.appendChild(box);
+    host.appendChild(wrap);
+    var imgMode = 'f', anyLegal = false;
     function line() { return o.line === 'vice' || o.line === 'cloud' ? o.line : (isVice() ? 'vice' : 'cloud'); }
     function img(rel) { var u = /^https?:/.test(rel) ? rel : (o.base || BASE) + rel; return o.asset ? o.asset(u) : u; }
     function paintBox() { box.className = 'cvad cvad--' + p.format + ' cvad--' + lookOf(o, line()) + (isDay() ? ' cvad--day' : ''); fit(); }
@@ -281,6 +322,7 @@
       l.style.background = ''; l.style.color = '';
       var side = p.format === 'side', strip = p.format === 'strip';
       var m = a.mark || {}, inflow = a.kind === 'html', rowCap = false;
+      imgMode = wideMode(a);
       // есть строка маркировки (рекламодатель или erid) — она уже начинается с «Реклама», отдельную метку не рисуем
       var hasLegal = !!(m.advertiser || m.erid), showLabel = !!m.label && !hasLegal;
       function labelIn(row) { if (showLabel) row.appendChild(el('span', 'cvad-label cvad-label-in', m.label)); }
@@ -292,11 +334,12 @@
         if (a.cta) ln.appendChild(el('span', 'cvad-cta', a.cta));
         labelIn(ln);
         l.appendChild(ln);
-      } else if (a.kind === 'image' && strip) {
+      } else if (a.kind === 'image' && (strip || imgMode !== 'f')) {
         var si = el('img', 'cvad-img'); si.alt = a.title || ''; si.decoding = 'async'; si.referrerPolicy = 'no-referrer';
-        if (a.image_strip) { si.src = img(a.image_strip); si.classList.add('cvad-fill'); l.appendChild(si); }
+        if (a.image_strip && (strip || imgMode === 's')) { si.src = img(a.image_strip); si.classList.add('cvad-fill'); l.appendChild(si); }
         else {
-          // картинка слева на 2/3, справа подпись; метка «Реклама» — перед подписью, а не поверх неё
+          // картинка слева (полоса — 2/3, низкая wide — 4:1 без обрезки), справа подпись; метка «Реклама» — перед
+          // подписью, а не поверх неё
           var rw = el('div', 'cvad-rowin'), cap = el('div', 'cvad-cap');
           si.src = img(a.image); rw.appendChild(si);
           labelIn(cap); cap.appendChild(doc.createTextNode(a.title || ''));
@@ -341,8 +384,28 @@
       fit();
       armImpression();
     }
+    /** Как рисовать баннер в wide при нынешней ширине. */
+    function wideMode(a) { return p.format !== 'wide' || a.kind !== 'image' ? 'f' : wideImage(box.clientWidth || 336, !!a.image_strip); }
+    /** Отступы от скруглённых углов экрана и полосы жестов: плашка у нижнего края и не в прокрутке. */
+    function edges() {
+      if (o.edge === false || destroyed || host.hidden) return;
+      wrap.style.padding = '';
+      var r = box.getBoundingClientRect(), e = screenEdges(), H = G.innerHeight, W = G.innerWidth, below = H - r.bottom;
+      if (!r.width || below < -1 || below > Math.max(e.bl, e.br, e.bar) || inScroll(wrap)) return;
+      var lift = Math.max(0, e.bar - below), y;
+      if (Math.max(e.bl, e.br) > 0 && below + lift < 8) lift = 8 - below;
+      y = Math.max(0, below) + lift;
+      var l = cornerSide(e.bl, 14, r.left, y), rt = cornerSide(e.br, 14, W - r.right, y);
+      if (l || rt || lift) wrap.style.padding = '0 ' + Math.round(rt) + 'px ' + Math.round(lift) + 'px ' + Math.round(l) + 'px';
+    }
     /** Подогнать HTML-баннер под высоту и ширину места: ничего не обрезается посередине строки. */
     function fit() {
+      if (p && p.format === 'wide') {
+        // высота от ширины: низкая wide и место под строку маркировки (если она есть хоть у одного баннера места)
+        var w0 = box.clientWidth, hh = w0 ? Math.round(wideHeight(w0) + (anyLegal ? LEGAL : 0)) + 'px' : '';
+        if (box.style.height !== hh) box.style.height = hh;
+        if (cur && cur.kind === 'image' && w0 && wideMode(cur) !== imgMode) { render(cur); return; }
+      }
       var r = box.getBoundingClientRect(), h = r.height || (r.width / (p ? FMT[p.format][0] / FMT[p.format][1] : 4)), w = r.width;
       fitLegal(box);
       if (!h) return;
@@ -353,13 +416,15 @@
       if (lgIn) h -= lgIn.offsetHeight || 17;
       // метка «Реклама» в строке заголовка занимает ~60 px — кнопке в строке нужно на столько же больше ширины
       var cm = (cur && cur.mark) || {}, labW = cm.label && !cm.advertiser && !cm.erid ? 60 : 0;
-      var mode = h >= 96 ? 'l' : h >= 58 ? 'm' : 's';
+      // низкое (50…58) — то же, что среднее, но поля меньше: заголовок с кнопкой и одна строка текста
+      var mode = h >= 96 ? 'l' : h >= 50 ? 'm' : 's', tight = mode === 'm' && h < 58;
       var hasCta = !!(cur && cur.cta), inline = mode !== 'l' && hasCta && w - labW >= 200;
       var head = inline ? 24 : 20, cta = mode === 'l' && hasCta ? 32 : 0;
       // 336×84 и 312×78: кнопка в строке заголовка + 2 строки текста; 186×93 (side): без кнопки, 3 строки
-      var lines = Math.max(0, Math.floor((h - 14 - head - cta - 3) / 17));
-      box.classList.remove('cvad--l', 'cvad--m', 'cvad--s', 'cvad--notxt', 'cvad--nocta');
+      var lines = Math.max(0, Math.floor((h - (tight ? 8 : 14) - head - cta - 3) / 17 + 0.01));
+      box.classList.remove('cvad--l', 'cvad--m', 'cvad--s', 'cvad--notxt', 'cvad--nocta', 'cvad--tight');
       box.classList.add('cvad--' + mode);
+      if (tight) box.classList.add('cvad--tight');
       if (!lines) box.classList.add('cvad--notxt');
       if (w && w - labW < 200 && mode !== 'l') box.classList.add('cvad--nocta');
       box.style.setProperty('--cvad-lines', String(Math.max(1, lines)));
@@ -406,9 +471,12 @@
       if (f.data.hit) hitUrl = o.hit || f.data.hit;
       p = plan(f.data, slot, line(), platformOf(o));
       if (!p) { host.hidden = true; return; }
+      anyLegal = p.ads.some(function (a) { var m = a.mark || {}; return !!(m.advertiser || m.erid); });
       host.hidden = false;
       paintBox();
       render(pick(p, null, slot));
+      edges();
+      G.addEventListener('resize', edges);
       if (io) io.observe(box); else { visible = true; armImpression(); schedule(); }
     }, function () { host.hidden = true; });
     return {
@@ -417,7 +485,8 @@
         destroyed = true; clearTimeout(timer); clearTimeout(impTimer);
         if (io) io.disconnect(); if (mo) mo.disconnect(); if (ro) ro.disconnect();
         doc.removeEventListener('visibilitychange', onVis);
-        if (box.parentNode) box.parentNode.removeChild(box);
+        G.removeEventListener('resize', edges);
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
         flush(true);
       }
     };

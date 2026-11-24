@@ -36,20 +36,26 @@
   var DAY = 24 * 3600 * 1000;
   // порядок Cloud-продуктов (как на странице загрузок и в боте)
   var ORDER = ['app', 'windows', 'zapret', 'social', 'social-win', 'messenger', 'messenger-win', 'mail', 'mail-win',
-    'wallet', 'love', 'addon', 'cloudbrowser', 'browser-android', 'chihua'];
+    'wallet', 'love', 'addon', 'cloudbrowser', 'browser-android', 'chihua', 'torrent', 'pass', 'pass-win', 'talk', 'talk-win', 'ai', 'ai-win'];
   // запасные пары, если в downloads.json нет lines.vice
   var VICE_PAIRS = { 'vice-vpn': 'app', 'vice-vpn-win': 'windows', 'vice-zapret': 'zapret', 'vice-club': 'social',
     'vice-club-win': 'social-win', 'vice-messenger': 'messenger', 'vice-messenger-win': 'messenger-win', 'vice-mail': 'mail',
     'vice-mail-win': 'mail-win', 'vice-wallet': 'wallet', 'vice-addon': 'addon', 'vice-browser': 'cloudbrowser',
-    'vice-browser-android': 'browser-android', miami: 'chihua', 'vice-wave': '', 'vice-wave-win': '', 'vice-love': 'love' };
+    'vice-browser-android': 'browser-android', miami: 'chihua', 'vice-wave': '', 'vice-wave-win': '', 'vice-love': 'love',
+    'vice-torrent': 'torrent', 'vice-pass': 'pass', 'vice-pass-win': 'pass-win',
+    'vice-talk': 'talk', 'vice-talk-win': 'talk-win', 'vice-ai': 'ai', 'vice-ai-win': 'ai-win' };
   var ICON_CLOUD = { app: 'cloudvpn-icon.png', windows: 'cloudvpn-icon.png', zapret: 'zapret/icon.png', social: 'social/icon.png',
     'social-win': 'social/icon.png', messenger: 'messenger/icon.png', 'messenger-win': 'messenger/icon.png', mail: 'mail/icon.png',
     'mail-win': 'mail/icon.png', wallet: 'wallet/icon.png', addon: 'extension-icon.png', cloudbrowser: 'cloudbrowser/icon.png',
-    'browser-android': 'cloudbrowser/icon.png', chihua: 'chihua/icon.png', love: 'love/icon.png' };
+    'browser-android': 'cloudbrowser/icon.png', chihua: 'chihua/icon.png', love: 'love/icon.png', torrent: 'torrent/icon.png',
+    pass: 'pass/icon.png', 'pass-win': 'pass/icon.png', talk: 'talk/icon.png', 'talk-win': 'talk/icon.png',
+    ai: 'ai/icon.png', 'ai-win': 'ai/icon.png' };
   var ICON_VICE = { 'vice-vpn': 'vice-vpn', 'vice-vpn-win': 'vice-vpn', 'vice-addon': 'vice-vpn', 'vice-zapret': 'vice-zapret',
     'vice-club': 'vice-club', 'vice-club-win': 'vice-club', 'vice-messenger': 'vice-messenger', 'vice-messenger-win': 'vice-messenger',
     'vice-mail': 'vice-mail', 'vice-mail-win': 'vice-mail', 'vice-wallet': 'vice-wallet', 'vice-browser': 'vice-browser',
-    'vice-browser-android': 'vice-browser', miami: 'miami', 'vice-wave': 'vice-wave', 'vice-wave-win': 'vice-wave', 'vice-love': 'vice-love' };
+    'vice-browser-android': 'vice-browser', miami: 'miami', 'vice-wave': 'vice-wave', 'vice-wave-win': 'vice-wave', 'vice-love': 'vice-love',
+    'vice-torrent': 'vice-torrent', 'vice-pass': 'vice-pass', 'vice-pass-win': 'vice-pass',
+    'vice-talk': 'vice-talk', 'vice-talk-win': 'vice-talk', 'vice-ai': 'vice-ai', 'vice-ai-win': 'vice-ai' };
 
   var T = {
     ru: { vice: 'Vice apps', cloud: 'Наши приложения', sub: 'Все наши приложения — скачать', title: 'Наши приложения',

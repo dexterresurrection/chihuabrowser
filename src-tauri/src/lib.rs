@@ -2159,6 +2159,7 @@ pub fn run() {
       services::service_view_bounds,
       services::service_view_hide,
       services::service_view_back,
+      services::service_view_theme,
       services::service_view_reload,
       services::services_apps,
       brand::get_brand,

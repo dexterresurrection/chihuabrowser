@@ -443,6 +443,7 @@
     '.cvl-vice:not(.cvl-compact) .cvl-pct{display:none}' +
     '.cvl-vice:not(.cvl-compact) .cvl-row{justify-content:flex-start}' +
     '.cvl-vice.cvl-compact .cvl-pct{color:var(--cvl-neon-text,#FFF4FB);font-family:var(--cvl-sign-font,inherit);text-shadow:0 0 3px var(--cvl-neon,#FF3EA5),0 0 9px var(--cvl-neon,#FF3EA5)}' +
+    '.cvl-off{display:none!important}.cvl-strip.cvl-strip-off{opacity:0!important;pointer-events:none}' +
     '@media (prefers-reduced-motion:reduce){.cvl-strip{transition:none}}';
   function injectCss() {
     if (!G.document || G.document.getElementById('cvl-css')) return;
@@ -647,6 +648,7 @@
     box.appendChild(svg);
     if (opts.replace !== false) host.innerHTML = '';
     host.appendChild(box);
+    var slot = opts.exclusive === false ? null : gateAdd(box, opts.priority || 30);
 
     var mode = opts.progress === 'loop' ? 'loop' : (typeof opts.progress === 'number' ? 'set' : 'auto');
     var target = mode === 'set' ? Math.max(0, Math.min(1, opts.progress / 100)) : 0;
@@ -714,6 +716,11 @@
       raf = 0;
       if (destroyed) return;
       if (!box.isConnected) { destroy(); return; }
+      if (slot && slot.off()) {                 // черёд другой загрузки: не рисуем, финал — сразу
+        if (finishing) { var fo = finishing; finishing = null; shownP = 1; fo(); if (opts.keepFinal) return; }
+        setTimeout(schedule, 200);
+        return;
+      }
       layout();
       var t = now(), x0 = PAD, x1 = W - PAD, L = x1 - x0;
       var frame = frameAt(t - t0);
@@ -818,6 +825,7 @@
       if (finishing && finishedAt && t - finishedAt >= FINISH) {
         var f = finishing;
         finishing = null;
+        if (slot) { slot.leave(); slot = null; }  // закончилась — место свободно для следующей
         f();
         if (opts.keepFinal) return;  // остаётся на финальном кадре
       }
@@ -831,6 +839,7 @@
 
     function destroy() {
       destroyed = true;
+      if (slot) slot.leave();
       if (unsub) unsub();
       if (raf && G.cancelAnimationFrame) G.cancelAnimationFrame(raf);
       if (box.parentNode) box.parentNode.removeChild(box);
@@ -851,9 +860,40 @@
         if (mode === 'loop') { mode = 'set'; shownP = 0.85; }
         return new Promise(function (res) { finishing = res; finishedAt = 0; schedule(); });
       },
-      reset: function () { finishing = null; finishedAt = 0; shownP = 0; target = 0; t0 = now(); schedule(); },
+      reset: function () { finishing = null; finishedAt = 0; shownP = 0; target = 0; t0 = now(); if (!slot && opts.exclusive !== false) slot = gateAdd(box, opts.priority || 30); schedule(); },
       destroy: destroy
     };
+  }
+
+  // ── одна загрузка на экран ──
+  // На странице видна одна загрузка — самая важная: своя страницы (30), подмена крутилки (20), полоса сверху (10);
+  // среди равных — первая. Остальные не рисуются и не занимают места, пока не придёт их черёд. exclusive: false —
+  // прогресс строки списка или вложения, он не в счёт. Своя полоска: g = CvLoaders.gate(el, 30); g.leave().
+  var gated = [], gateSeq = 0, gateTimer = 0;
+  function gateAdd(box, prio) {
+    var e = { box: box, prio: prio, seq: gateSeq++, off: false };
+    gated.push(e);
+    gateRun();
+    return { off: function () { return e.off; }, leave: function () { var i = gated.indexOf(e); if (i >= 0) { gated.splice(i, 1); setOff(e, false); gateRun(); } } };
+  }
+  function setOff(e, off) {
+    if (e.off === off) return;
+    e.off = off;
+    e.box.classList.toggle('cvl-off', off);
+    var par = e.box.parentNode;
+    if (par && par.classList && par.classList.contains('cvl-strip')) par.classList.toggle('cvl-strip-off', off);
+  }
+  function gateRun() {
+    var best = null;
+    for (var i = gated.length - 1; i >= 0; i--) if (!gated[i].box.isConnected) gated.splice(i, 1);
+    gated.forEach(function (e) {
+      var par = e.box.parentElement;
+      if (!par || !par.getClientRects().length) return;        // скрытая вкладка или раздел
+      if (!best || e.prio > best.prio || (e.prio === best.prio && e.seq < best.seq)) best = e;
+    });
+    gated.forEach(function (e) { setOff(e, !!best && e !== best); });
+    // раздел могли показать или скрыть без нас — пока загрузчиков больше одного, перепроверяем
+    if (gated.length > 1 && !gateTimer) gateTimer = setTimeout(function () { gateTimer = 0; gateRun(); }, 250);
   }
 
   // ── загрузчик Vice (car / boat / jetski): тот же API, что у cvLoader ──
@@ -954,6 +994,7 @@
     box.appendChild(svg);
     if (opts.replace !== false) host.innerHTML = '';
     host.appendChild(box);
+    var slot = opts.exclusive === false ? null : gateAdd(box, opts.priority || 30);
 
     var mode = opts.progress === 'loop' ? 'loop' : (typeof opts.progress === 'number' ? 'set' : 'auto');
     var target = mode === 'set' ? Math.max(0, Math.min(1, opts.progress / 100)) : 0;
@@ -1026,6 +1067,11 @@
       raf = 0;
       if (destroyed) return;
       if (!box.isConnected) { destroy(); return; }
+      if (slot && slot.off()) {                 // черёд другой загрузки: не рисуем, финал — сразу
+        if (finishing) { var fo = finishing; finishing = null; shownP = 1; fo(); if (opts.keepFinal) return; }
+        setTimeout(schedule, 200);
+        return;
+      }
       layout();
       var t = now(), p;
       if (mode === 'loop') {
@@ -1081,6 +1127,7 @@
       if (finishing && finishedAt && t - finishedAt >= FINISH) {
         var f = finishing;
         finishing = null;
+        if (slot) { slot.leave(); slot = null; }  // закончилась — место свободно для следующей
         f();
         if (opts.keepFinal) return;
       }
@@ -1093,6 +1140,7 @@
     }
     function destroy() {
       destroyed = true;
+      if (slot) slot.leave();
       if (unsub) unsub();
       if (raf && G.cancelAnimationFrame) G.cancelAnimationFrame(raf);
       if (box.parentNode) box.parentNode.removeChild(box);
@@ -1112,7 +1160,7 @@
         if (mode === 'loop') { mode = 'set'; shownP = 0.85; }
         return new Promise(function (res) { finishing = res; finishedAt = 0; schedule(); });
       },
-      reset: function () { finishing = null; finishedAt = 0; shownP = 0; target = 0; t0 = now(); schedule(); },
+      reset: function () { finishing = null; finishedAt = 0; shownP = 0; target = 0; t0 = now(); if (!slot && opts.exclusive !== false) slot = gateAdd(box, opts.priority || 30); schedule(); },
       destroy: destroy
     };
   }
@@ -1158,7 +1206,7 @@
     function show() {
       if (visible) return;
       visible = true;
-      ld = cvLoader(wrap, { kind: opts.kind || 'auto', size: opts.size || 34, compact: true, keepFinal: true });
+      ld = cvLoader(wrap, { kind: opts.kind || 'auto', size: opts.size || 34, compact: true, keepFinal: true, priority: 10 });
       wrap.classList.remove('cvl-hidden');
     }
     function hide() {
@@ -1199,7 +1247,7 @@
       n.__cvl = true;
       n.classList.add('cvl-host');
       n.setAttribute('role', 'presentation');
-      cvLoader(n, { kind: opts.kind || 'auto', size: opts.size || 54, label: opts.label || '' });
+      cvLoader(n, { kind: opts.kind || 'auto', size: opts.size || 54, label: opts.label || '', priority: 20 });
     }
     function scan(node) {
       if (!node || node.nodeType !== 1) return;
@@ -1268,6 +1316,7 @@
         label: this.getAttribute('label') || '',
         size: Number(this.getAttribute('size')) || H0,
         compact: this.hasAttribute('compact'),
+        exclusive: this.getAttribute('exclusive') !== 'false',
         keepFinal: true,
         progress: pr === 'loop' ? 'loop' : (pr != null && pr !== '' && !isNaN(Number(pr)) ? Number(pr) : undefined)
       });
@@ -1283,6 +1332,7 @@
   }
 
   G.CvLoaders = {
+    gate: function (el, prio) { injectCss(); return gateAdd(el, prio || 30); },
     cvLoader: cvLoader, CvLoad: CvLoad, cvLoadStrip: cvLoadStrip, cvAutoSwap: cvAutoSwap, snapshot: snapshot,
     // данные рисунков для генератора Kotlin; геометрия сцены — те же числа, что в render()
     _art: { dog: dog, hare: hare, eater: eater, mob: mobArt, chest: chestArt, sparkle: sparkleArt, heart: heartArt, MOB_COLORS: MOB_COLORS, OUT: OUT },

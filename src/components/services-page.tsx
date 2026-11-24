@@ -120,8 +120,35 @@ function AppsPlate() {
   return <div ref={el} />;
 }
 
+/** Тема программы для модуля (правило набора: тему модуля задаёт хост). */
+function hostTheme(): string {
+  const c = document.documentElement.classList;
+  if (c.contains("vice-day")) return "vice-day";
+  if (c.contains("vice")) return "vice-night";
+  return c.contains("light") ? "light" : "dark";
+}
+
 /** Веб-модуль: дочерний WebView точно над этим блоком; уходим со страницы — модуль прячется, но живёт. */
-function WebModule({ id, url }: { id: ServiceId; url: string }) {
+function WebModule({ id, url: base }: { id: ServiceId; url: string }) {
+  // адрес с темой хоста — один раз на открытие; дальше тему передаёт service_view_theme
+  const [url] = useState(() => `${base}?cv_theme=${hostTheme()}`);
+  useEffect(() => {
+    // тему сменили: классы на <html> меняет theme-provider
+    const tell = () => {
+      void invoke("service_view_theme", { theme: hostTheme() }).catch(
+        () => undefined,
+      );
+    };
+    tell();
+    const mo = new MutationObserver(tell);
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => {
+      mo.disconnect();
+    };
+  }, []);
   const { t } = useTranslation();
   const box = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -210,7 +237,7 @@ function WebModule({ id, url }: { id: ServiceId; url: string }) {
           variant="ghost"
           title={t("services.openInBrowser")}
           onClick={() => {
-            void openUrl(url);
+            void openUrl(base);
           }}
         >
           <LuExternalLink className="size-3.5" />
