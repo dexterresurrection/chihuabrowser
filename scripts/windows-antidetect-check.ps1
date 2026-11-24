@@ -78,14 +78,19 @@ $bmp = New-Object System.Drawing.Bitmap $bnd.Width,$bnd.Height
 [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($bnd.Location,[System.Drawing.Point]::Empty,$bnd.Size)
 $bmp.Save((Join-Path $res 'antidetect.png'))
 # what people actually see: neon magenta of the Vice icon in the taskbar strip (Chihua's fox and the system icons have none)
-$pink = 0
-for ($y = $bnd.Height - 44; $y -lt $bnd.Height - 4; $y++) {
-  for ($x = [int]($bnd.Width * 0.45); $x -lt [int]($bnd.Width * 0.78); $x++) {
-    $c = $bmp.GetPixel($x, $y)
-    if ($c.R -gt 170 -and $c.B -gt 120 -and $c.G -lt 110) { $pink++ }
+function Pink($bmp) {
+  $n = 0
+  for ($y = $bnd.Height - 44; $y -lt $bnd.Height - 4; $y++) {
+    for ($x = [int]($bnd.Width * 0.45); $x -lt [int]($bnd.Width * 0.78); $x++) {
+      $c = $bmp.GetPixel($x, $y)
+      if ($c.R -gt 170 -and $c.B -gt 120 -and $c.G -lt 110) { $n++ }
+    }
   }
+  return $n
 }
-Check 'taskbar: the button on the screen has the Vice icon' ($pink -gt 25) "$pink neon pixels"
+$exeRun = Pink $bmp
+Note ("start apps: " + ((Get-StartApps | Where-Object { $_.AppID -match 'chihua|miami|antidetect' -or $_.Name -match 'Chihua|Antidetect' } | ForEach-Object { "$($_.Name) = $($_.AppID)" }) -join '; '))
+Note "started from the exe: $exeRun neon pixels in the taskbar"
 # taskbar: the button is drawn with the window's big icon (ICON_BIG); it must be the line's icon, not the one of the exe
 Add-Type @'
 using System; using System.Runtime.InteropServices;
@@ -110,6 +115,18 @@ if ($hb -ne [IntPtr]::Zero) {
   Check 'taskbar: big icon is the Vice Antidetect icon' ((Icon-Hash $big) -eq (Icon-Hash $lineIcon)) "$($big.Width) px"
 }
 if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+Get-Process | Where-Object { $_.Path -eq $after.FullName } | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep 3
+# the way people start it: the Start menu shortcut
+$lnk = @((Join-Path $sm 'Vice Antidetect.lnk'), (Join-Path $smAll 'Vice Antidetect.lnk')) | Where-Object { Test-Path $_ } | Select-Object -First 1
+Start-Process $lnk
+Start-Sleep 25
+$bmp2 = New-Object System.Drawing.Bitmap $bnd.Width,$bnd.Height
+[System.Drawing.Graphics]::FromImage($bmp2).CopyFromScreen($bnd.Location,[System.Drawing.Point]::Empty,$bnd.Size)
+$bmp2.Save((Join-Path $res 'antidetect-from-shortcut.png'))
+$lnkRun = Pink $bmp2
+Check 'taskbar: started from the Start menu - the Vice icon on the screen' ($lnkRun -gt 25) "$lnkRun neon pixels"
+Check 'taskbar: started from the exe - the Vice icon on the screen' ($exeRun -gt 25) "$exeRun neon pixels"
 Get-Process | Where-Object { $_.Path -eq $after.FullName } | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 2
 

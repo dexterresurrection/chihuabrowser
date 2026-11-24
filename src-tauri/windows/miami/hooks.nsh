@@ -2,11 +2,22 @@
 ; same uninstall key, folder, exe, data and AppUserModelID — with its own name, icon and default theme.
 ; Tauri includes this file into installer.nsi.
 !define MIAMI_ASSETS "${__FILEDIR__}"
+Var ViceOldDesktop
 
 !macro NSIS_HOOK_PREINSTALL
   ; shortcut and "Apps" icon (installer.nsi: DISPLAYICON); shortcuts are created later in this section
   SetOutPath "$INSTDIR"
   File "/oname=miami.ico" "${MIAMI_ASSETS}\miami.ico"
+  ; Shortcuts of the other line and of the old name go away BEFORE ours are created: all carry the same AppUserModelID,
+  ; and the shell keeps the first one it saw. Removed afterwards, it left the taskbar button with a stale or blank icon.
+  Delete "$SMPROGRAMS\Chihua.lnk"
+  Delete "$DESKTOP\Chihua.lnk"
+  Delete "$SMPROGRAMS\Miami Browser.lnk"
+  StrCpy $ViceOldDesktop ""
+  IfFileExists "$DESKTOP\Miami Browser.lnk" 0 vice_no_old_desktop
+    StrCpy $ViceOldDesktop "1"
+    Delete "$DESKTOP\Miami Browser.lnk"
+  vice_no_old_desktop:
 !macroend
 
 !macro NSIS_HOOK_POSTINSTALL
@@ -14,17 +25,11 @@
   FileOpen $0 "$INSTDIR\brand.json" w
   FileWrite $0 '{"v":1,"brand":"vice","name":"Vice Antidetect","theme":"vice-night"}'
   FileClose $0
-  ; shortcuts of the old name (Miami Browser): Start menu goes away (the installer made Vice Antidetect.lnk),
-  ; a desktop shortcut is replaced by one with the new name
-  Delete "$SMPROGRAMS\Miami Browser.lnk"
-  IfFileExists "$DESKTOP\Miami Browser.lnk" 0 vice_no_old_desktop
-    Delete "$DESKTOP\Miami Browser.lnk"
+  ; a desktop shortcut of the old name is replaced by one with the new name
+  StrCmp $ViceOldDesktop "1" 0 vice_desktop_done
     CreateShortcut "$DESKTOP\${DISPLAYNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "${DISPLAYICON}" 0
     !insertmacro SetLnkAppUserModelId "$DESKTOP\${DISPLAYNAME}.lnk"
-  vice_no_old_desktop:
-  ; Chihua shortcuts from an earlier install of the other line
-  Delete "$SMPROGRAMS\Chihua.lnk"
-  Delete "$DESKTOP\Chihua.lnk"
+  vice_desktop_done:
   ; the shell keeps icons of shortcuts and programs: the line has changed, let it read them again (SHCNE_ASSOCCHANGED)
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
