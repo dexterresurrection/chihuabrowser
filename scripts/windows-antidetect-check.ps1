@@ -130,7 +130,9 @@ Remove-Item Env:CHIHUA_UPDATE_LIST
 Start-Sleep 5
 $old = $p.Id
 if (Test-Path $file) {
-  Start-Process $file -ArgumentList '/S','/UPDATE','/R' -Wait
+  # not -Wait: it would wait for the program the installer starts as well
+  $ip = Start-Process $file -ArgumentList '/S','/UPDATE','/R' -PassThru
+  Check 'update: the installer finished' ($ip.WaitForExit(180000))
   $new = $null
   for ($i = 0; $i -lt 20 -and -not $new; $i++) { Start-Sleep 2; $new = Get-Process | Where-Object { $_.Path -eq $after.FullName -and $_.Id -ne $old } | Select-Object -First 1 }
   Check 'update: the installer starts the program again' ($null -ne $new)
