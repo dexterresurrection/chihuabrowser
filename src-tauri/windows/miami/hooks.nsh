@@ -25,6 +25,8 @@
   ; Chihua shortcuts from an earlier install of the other line
   Delete "$SMPROGRAMS\Chihua.lnk"
   Delete "$DESKTOP\Chihua.lnk"
+  ; the shell keeps icons of shortcuts and programs: the line has changed, let it read them again (SHCNE_ASSOCCHANGED)
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL

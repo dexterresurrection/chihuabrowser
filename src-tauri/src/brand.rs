@@ -77,7 +77,7 @@ pub fn apply_line(app: tauri::AppHandle, line: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     if let (Ok(hwnd), Ok(exe)) = (w.hwnd(), std::env::current_exe()) {
       let ico = if vice { vice_ico(&app, &exe) } else { None };
-      crate::taskbar::apply(hwnd.0 as isize, name, &exe, ico.as_deref());
+      crate::taskbar::set(hwnd.0 as isize, name, &exe, ico.as_deref());
     }
   }
   if let Some(t) = app.tray_by_id("main") {

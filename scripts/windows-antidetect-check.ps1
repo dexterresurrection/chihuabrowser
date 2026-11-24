@@ -71,12 +71,21 @@ for ($i = 0; $i -lt 30 -and -not $title; $i++) {
 }
 Check 'app runs' (-not $p.HasExited)
 Check 'window title Vice Antidetect' ($title -eq 'Vice Antidetect') "'$title'"
-Start-Sleep 8
+Start-Sleep 16
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 $bnd = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 $bmp = New-Object System.Drawing.Bitmap $bnd.Width,$bnd.Height
 [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($bnd.Location,[System.Drawing.Point]::Empty,$bnd.Size)
 $bmp.Save((Join-Path $res 'antidetect.png'))
+# what people actually see: neon magenta of the Vice icon in the taskbar strip (Chihua's fox and the system icons have none)
+$pink = 0
+for ($y = $bnd.Height - 44; $y -lt $bnd.Height - 4; $y++) {
+  for ($x = [int]($bnd.Width * 0.45); $x -lt [int]($bnd.Width * 0.78); $x++) {
+    $c = $bmp.GetPixel($x, $y)
+    if ($c.R -gt 170 -and $c.B -gt 120 -and $c.G -lt 110) { $pink++ }
+  }
+}
+Check 'taskbar: the button on the screen has the Vice icon' ($pink -gt 25) "$pink neon pixels"
 # taskbar: the button is drawn with the window's big icon (ICON_BIG); it must be the line's icon, not the one of the exe
 Add-Type @'
 using System; using System.Runtime.InteropServices;
